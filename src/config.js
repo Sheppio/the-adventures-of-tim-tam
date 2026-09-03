@@ -23,8 +23,10 @@ export const HERO = {
   speed: 3.4,
   jump: 11.2,
   standHeight: 74,
-  slapCooldown: 20,
-  slapDuration: 16,
+  // Matched, so held swings chain back-to-back without one arc cutting
+  // off the last frames of the previous. 5/sec, up from 3.
+  slapCooldown: 12,
+  slapDuration: 12,
   // Tim Tam has no health. He has "dignity", and it regenerates.
   flopDuration: 78,        // frames spent as a limp noodle
   getUpDuration: 34,       // frames spent wobbling back to vertical
@@ -47,14 +49,6 @@ export const DYNAMITE = {
   throwPower: 10.5,
   radius: 260,
   force: 62,
-};
-
-// Explosions that happen for no reason whatsoever. This is a feature.
-export const RANDOM_BOOM = {
-  minDelay: 90,
-  maxDelay: 260,
-  radius: 190,
-  force: 40,
 };
 
 export const GOOSE = {
@@ -90,7 +84,7 @@ export const GREG = {
 
 // Bump this on every push. Shown on the title screen so you always know
 // which build you're actually playing. See CHANGELOG.md.
-export const VERSION = 'v0.2.0';
+export const VERSION = 'v0.3.0';
 
 // The joke that started all this.
 // GTA VI: November 19, 2026. Every other publisher fled the date.

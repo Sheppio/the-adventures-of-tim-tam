@@ -74,7 +74,7 @@ export class Hero {
   get swingActive() {
     if (this.swing <= 0) return false;
     const t = 1 - this.swing / HERO.slapDuration;
-    return t > 0.1 && t < 0.8;
+    return t > 0.08 && t < 0.85;
   }
 
   startSwing() {

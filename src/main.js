@@ -1,7 +1,7 @@
 // The Adventures of Tim Tam -- one arena, one baguette, no death animation.
 import {
   VIEW_W, VIEW_H, VW, VH, ZOOM, CAM_Y, WORLD_W, GROUND_Y, GRAVITY,
-  HERO, BAGUETTE, DYNAMITE, RANDOM_BOOM, GOOSE, GREG, GTA6_DATE, VERSION,
+  HERO, BAGUETTE, DYNAMITE, GOOSE, GREG, GTA6_DATE, VERSION,
 } from './config.js';
 import { blast, rand, randInt, pick, clamp } from './physics.js';
 import { Hero } from './hero.js';
@@ -47,11 +47,6 @@ const ui = {
   touch: document.getElementById('touch'),
 };
 
-const RANDOM_BOOM_QUIPS = [
-  'why', 'no reason', 'unrelated', 'physics', 'that was not me',
-  'anyway', 'unscheduled', 'the arena is haunted', 'budget cuts', '???',
-];
-
 class World {
   constructor() { this.reset(); }
 
@@ -64,7 +59,6 @@ class World {
     this.greg = null;
     this.gooseKills = 0;
     this.cam = 0;
-    this.boomTimer = randInt(RANDOM_BOOM.minDelay, RANDOM_BOOM.maxDelay);
     this.spawnTimer = 40;
     this.gregAnnounced = false;
     this.victory = false;
@@ -158,14 +152,6 @@ class World {
     }
   }
 
-  randomBoom() {
-    // Somewhere in view, for no reason at all.
-    const x = clamp(this.cam + rand(70, VW - 70), 40, WORLD_W - 40);
-    const y = Math.random() < 0.3 ? rand(CAM_Y + 90, 430) : GROUND_Y - rand(10, 90);
-    this.explode(x, y, RANDOM_BOOM.radius, RANDOM_BOOM.force);
-    FX.say(x, y - 70, pick(RANDOM_BOOM_QUIPS), { color: '#ffd9a0', size: 20, maxLife: 70 });
-    this.boomTimer = randInt(RANDOM_BOOM.minDelay, RANDOM_BOOM.maxDelay);
-  }
 
   update() {
     this.frame++;
@@ -177,7 +163,9 @@ class World {
       // Edge-triggered, so holding the key doesn't pin him to the ground.
       jump: justPressed('jump'),
     };
-    if (justPressed('slap')) hero.startSwing();
+    // Held as well as tapped: with a flock on him, re-pressing for every
+    // swing was the bottleneck.
+    if (justPressed('slap') || held('slap')) hero.startSwing();
     if (justPressed('boom') && hero.canThrow()) {
       this.dynamites.push(hero.throwDynamite());
       FX.say(hero.x, hero.y - 90, pick(['DYNAMITE', 'catch!', 'bon appétit', 'for you']), {
@@ -188,7 +176,6 @@ class World {
     hero.update(input);
 
     // --- the universe's unprompted contributions ---
-    if (--this.boomTimer <= 0) this.randomBoom();
 
     // --- geese ---
     if (!this.victory) this.maybeSpawnGeese();

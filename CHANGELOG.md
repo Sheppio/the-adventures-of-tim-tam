@@ -6,6 +6,18 @@ Versions are `vMAJOR.MINOR.PATCH`. The version shown on the title screen is
 - **MINOR** — new mechanics, enemies, or anything that changes how it plays.
 - **PATCH** — bug fixes and tuning.
 
+## v0.3.0
+
+- **Removed the random explosions.** They fired every 1.5–4s with no cause and
+  no tell, which read as the game glitching rather than as a joke. Dynamite is
+  now the only thing that explodes, and it always has a visible source.
+- **Baguette swings ~67% faster** — cooldown 20 → 12 frames, 3/sec → 5/sec — to
+  match how much harder the geese push back in v0.2.0.
+- **Hold to keep swinging.** The swing was edge-triggered, so every hit needed
+  its own keypress. Holding `J` or the mouse button now swings continuously.
+  Swing duration is matched to the cooldown so arcs chain back-to-back instead
+  of cutting each other off.
+
 ## v0.2.0
 
 Geese fight back.

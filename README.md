@@ -32,12 +32,12 @@ One arena. Side-scrolling. No levels, no lore, no menus to speak of.
   thousand pixels into the sky. It is not balanced. It was never going to be.
 - **The dynamite** — comically powerful, on a short cooldown, and Tim Tam is
   emphatically included in his own blast radius.
-- **Geese** — they honk, they waddle, they charge, they extend their necks at
-  you in a way that is genuinely upsetting.
+- **Geese** — they honk, they waddle, they flank you, and they extend their
+  necks at you in a way that is genuinely upsetting. They peck, they shove you
+  over with a wing, and they climb to altitude to dive-bomb you. Launch one and
+  every goose that saw it turns red-eyed and furious.
 - **Greg** — the final boss. Just some dude named Greg. Polo shirt, khakis,
   lanyard. He throws staplers and calls meetings.
-- **Random explosions** — go off every few seconds for no reason at all,
-  somewhere on screen, and knock everybody over. This is a feature.
 
 ### Tim Tam cannot die
 
@@ -113,7 +113,7 @@ There is no separate "death" code path anywhere in this repository.
 ### Tuning it
 
 Everything absurd lives in `src/config.js`. `BAGUETTE.knockback`,
-`DYNAMITE.force`, `RANDOM_BOOM.minDelay`. Turn them up. That's the whole
+`DYNAMITE.force`, `GOOSE.maxAlive`. Turn them up. That's the whole
 point.
 
 ## Contributing
