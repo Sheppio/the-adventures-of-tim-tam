@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Adventures of Tim Tam</title>
+<meta name="description" content="A derpy baker with an overpowered baguette, ragdoll physics, unexplained explosions, hostile geese, and a final boss named Greg. Launching head-to-head with GTA VI.">
+<meta name="theme-color" content="#2a1a10">
+<meta property="og:title" content="The Adventures of Tim Tam">
+<meta property="og:description" content="Ragdoll physics. An overpowered baguette. Absurd explosions. A final boss named Greg. Releasing the same day as GTA VI, on purpose.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🥖</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bree+Serif&family=Rubik:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #2a1a10;
+    --crust: #dda94f;
+    --crumb: #f5e7c8;
+    --wine: #c0453b;
+    --blue: #2b4a8b;
+    --paper: #f7efdd;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%;
+    background: #1a120c;
+    color: var(--paper);
+    font-family: Rubik, system-ui, -apple-system, "Segoe UI", sans-serif;
+    overflow: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+  body { display: flex; flex-direction: column; }
+
+  /* ---- top bar: the whole joke, front and centre ---- */
+  #topbar {
+    flex: 0 0 auto;
+    display: flex; align-items: center; gap: 14px;
+    padding: 7px 14px;
+    background: linear-gradient(#3a2718, #241609);
+    border-bottom: 3px solid #6b4a26;
+    font-size: 13px;
+    z-index: 5;
+  }
+  #topbar .brand {
+    font-family: "Bree Serif", Georgia, serif;
+    font-size: 17px; letter-spacing: .2px; white-space: nowrap;
+    color: var(--crumb);
+  }
+  #topbar .brand .b { color: var(--crust); }
+  #countdown {
+    margin-left: auto; text-align: right;
+    color: #ffd9a0; line-height: 1.25;
+    font-variant-numeric: tabular-nums;
+  }
+  #countdown b { color: #fff3d0; font-size: 15px; }
+  .cd-label { color: #c2a688; font-size: 11.5px; text-transform: uppercase; letter-spacing: .6px; }
+  #mute {
+    background: #4a3320; color: var(--crumb); border: 2px solid #6b4a26;
+    border-radius: 8px; font-size: 15px; padding: 3px 9px; cursor: pointer;
+  }
+  #mute:hover { background: #5c4026; }
+
+  /* ---- stage ---- */
+  #stage {
+    position: relative; flex: 1 1 auto;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 0;
+    background:
+      radial-gradient(ellipse at 50% 0%, #2f2015 0%, #140d08 75%);
+  }
+  canvas {
+    display: block;
+    image-rendering: auto;
+    box-shadow: 0 0 0 3px #6b4a26, 0 18px 50px rgba(0,0,0,.6);
+    background: #8fd0f0;
+    touch-action: none;
+  }
+
+  /* ---- HUD ---- */
+  #hud {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    pointer-events: none; width: min(96%, 900px);
+  }
+  #stats {
+    display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  }
+  .chip {
+    background: rgba(30,18,10,.78);
+    border: 2px solid #6b4a26;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: .3px;
+    white-space: nowrap;
+    backdrop-filter: blur(2px);
+  }
+  .chip .k { color: #c2a688; font-weight: 500; margin-right: 5px; text-transform: uppercase; font-size: 10.5px; }
+  .chip .v { color: #ffe9b8; font-variant-numeric: tabular-nums; }
+  .chip .v.ready { color: #8ce39b; }
+  .chip.hp .v { color: #8ce39b; letter-spacing: 1px; }
+
+  #greg-bar {
+    width: 100%; max-width: 560px;
+    background: rgba(20,12,6,.8);
+    border: 3px solid #6b4a26; border-radius: 10px;
+    padding: 5px 7px;
+  }
+  #greg-bar .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px;
+    color: #cfe4ff; margin-bottom: 4px; text-align: center;
+  }
+  #greg-bar .label span { color: #8fa8c4; text-transform: none; letter-spacing: 0; }
+  #greg-track { height: 13px; background: #2a1a10; border-radius: 7px; overflow: hidden; }
+  #greg-fill {
+    height: 100%; width: 100%;
+    background: linear-gradient(#5b8fc4, #2f5a8f);
+    border-right: 2px solid #dff0ff;
+    transition: width .16s ease-out;
+  }
+
+  /* ---- overlays ---- */
+  .overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 20px;
+    background: rgba(20,12,6,.82);
+    backdrop-filter: blur(3px);
+    overflow: auto;
+  }
+  .overlay.hidden, .hidden { display: none !important; }
+  h1 {
+    font-family: "Bree Serif", Georgia, serif;
+    margin: 0;
+    font-size: clamp(30px, 6.4vw, 66px);
+    line-height: 1.02;
+    color: var(--crumb);
+    text-shadow: 0 4px 0 #6b4a26, 0 8px 22px rgba(0,0,0,.7);
+  }
+  h1 .swap { color: var(--crust); }
+  .tagline {
+    margin: 12px 0 4px; font-size: clamp(13px, 2vw, 17px);
+    color: #ffd9a0; max-width: 640px; line-height: 1.45;
+  }
+  .smallprint {
+    margin: 6px 0 0; font-size: 12px; color: #a8907a; max-width: 620px; line-height: 1.5;
+  }
+  .plea {
+    margin: 14px auto 0; max-width: 640px;
+    border-left: 3px solid var(--wine);
+    background: rgba(192,69,59,.12);
+    padding: 9px 14px; text-align: left;
+    font-size: 12.5px; color: #f0d8c0; line-height: 1.5;
+  }
+  .btn {
+    font-family: "Bree Serif", Georgia, serif;
+    margin-top: 20px;
+    background: linear-gradient(#e8b95c, #c98f2c);
+    color: #33200c; border: 3px solid #7a4f1c;
+    border-radius: 12px;
+    padding: 12px 30px; font-size: 21px; cursor: pointer;
+    box-shadow: 0 5px 0 #7a4f1c;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #7a4f1c; }
+  .keys {
+    margin-top: 18px; display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 7px; max-width: 620px; width: 100%;
+    font-size: 12px;
+  }
+  .keys div {
+    background: rgba(0,0,0,.35); border: 1px solid #5c4026;
+    border-radius: 8px; padding: 7px 9px; text-align: left;
+  }
+  kbd {
+    display: inline-block; background: #f7efdd; color: #2a1a10;
+    border-radius: 4px; padding: 1px 5px; font-size: 11px;
+    font-family: inherit; font-weight: 700; margin-right: 5px;
+  }
+  #victory h1 { font-size: clamp(26px, 5vw, 50px); }
+  #victory-stats { margin-top: 12px; font-size: 15px; line-height: 1.7; color: #ffe9b8; }
+  #victory-stats b { color: #fff; }
+  .dim { color: #a8907a; font-size: 12px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+  /* ---- touch controls ---- */
+  #touch {
+    position: absolute; inset: auto 0 0 0;
+    display: none; justify-content: space-between;
+    padding: 12px 16px 18px; pointer-events: none;
+  }
+  #touch .side { display: flex; gap: 10px; pointer-events: auto; }
+  #touch button {
+    width: 62px; height: 62px; border-radius: 50%;
+    background: rgba(247,239,221,.22); color: var(--paper);
+    border: 2px solid rgba(247,239,221,.5);
+    font-size: 22px; font-weight: 900;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+  #touch button:active { background: rgba(247,239,221,.45); }
+  @media (hover: none) and (pointer: coarse) {
+    #touch { display: flex; }
+    #hud { top: 6px; }
+  }
+  @media (max-height: 520px) {
+    #topbar { padding: 3px 9px; }
+    #topbar .brand { font-size: 12px; }
+    #mute { font-size: 12px; padding: 2px 7px; }
+    .chip { font-size: 10px; padding: 2px 8px; border-width: 1.5px; }
+    .chip .k { font-size: 9px; margin-right: 3px; }
+    #hud { gap: 4px; }
+    #greg-bar { padding: 3px 5px; }
+    #greg-track { height: 9px; }
+    #touch button { width: 52px; height: 52px; font-size: 18px; }
+    #touch { padding: 8px 10px 10px; }
+  }
+  @media (max-width: 620px) {
+    #topbar { font-size: 11px; gap: 8px; padding: 6px 9px; }
+    #topbar .brand { font-size: 13px; }
+    #countdown b { font-size: 12.5px; }
+    .cd-label { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="brand">🥖 The Adventures of <span class="b">Tim&nbsp;Tam</span></div>
+  <button id="mute" title="Mute (M)">🔊</button>
+  <div id="countdown"></div>
+</div>
+
+<div id="stage">
+  <canvas id="game" width="1280" height="720"></canvas>
+
+  <div id="hud" class="hidden">
+    <div id="stats">
+      <span class="chip hp"><span class="k">Tim Tam HP</span><span class="v">∞</span></span>
+      <span class="chip"><span class="k">Geese launched</span><span class="v" id="stat-geese">0</span></span>
+      <span class="chip"><span class="k">Baguette hits</span><span class="v" id="stat-slaps">0</span></span>
+      <span class="chip"><span class="k">Times flattened</span><span class="v" id="stat-flops">0</span></span>
+      <span class="chip"><span class="k">Dynamite</span><span class="v ready" id="stat-boom">READY</span></span>
+    </div>
+    <div id="greg-bar" class="hidden">
+      <div class="label">Greg <span>— just some dude</span></div>
+      <div id="greg-track"><div id="greg-fill"></div></div>
+    </div>
+  </div>
+
+  <div id="title" class="overlay">
+    <h1>The Adventures of<br>Tim <span class="swap">Tam</span></h1>
+    <p class="tagline">
+      A derpy baker. One overpowered baguette. Ragdoll physics, unexplained
+      explosions, and a final boss named <b>Greg</b>.
+    </p>
+    <p class="smallprint">
+      Tim Tam cannot die. There is no death animation, because nobody wrote one.
+      He simply flops over, gets back up, and resumes slapping.
+    </p>
+    <button class="btn" id="start">SLAP SOME GEESE</button>
+    <div class="keys">
+      <div><kbd>A</kbd><kbd>D</kbd> waddle</div>
+      <div><kbd>W</kbd> / <kbd>Space</kbd> hop</div>
+      <div><kbd>J</kbd> / click — swing baguette</div>
+      <div><kbd>K</kbd> / right-click — dynamite</div>
+      <div><kbd>R</kbd> restart the arena</div>
+      <div><kbd>M</kbd> mute</div>
+    </div>
+    <p class="plea">
+      <b>Why this exists:</b> every publisher on earth fled the GTA VI release
+      date. This one is aimed directly at it. I'm not a game dev — I just
+      thought it would be the funniest possible thing if a game about a man
+      slapping geese with bread launched the exact same day. Someone please
+      run with it. It's all here, MIT licensed.
+    </p>
+  </div>
+
+  <div id="victory" class="overlay hidden">
+    <h1>GREG IS DEFEATED</h1>
+    <p class="tagline">He has taken the rest of the day off. The bread endures.</p>
+    <div id="victory-stats"></div>
+    <div class="row">
+      <button class="btn" id="restart">GO AGAIN</button>
+    </div>
+    <p class="smallprint">
+      Greg is still on the ground. He is fine. He is just some dude.
+    </p>
+  </div>
+
+  <div id="touch" class="hidden">
+    <div class="side">
+      <button data-btn="left" aria-label="left">◀</button>
+      <button data-btn="right" aria-label="right">▶</button>
+    </div>
+    <div class="side">
+      <button data-btn="jump" aria-label="jump">▲</button>
+      <button data-btn="slap" aria-label="baguette">🥖</button>
+      <button data-btn="boom" aria-label="dynamite">🧨</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
