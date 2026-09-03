@@ -6,6 +6,10 @@ Versions are `vMAJOR.MINOR.PATCH`. The version shown on the title screen is
 - **MINOR** — new mechanics, enemies, or anything that changes how it plays.
 - **PATCH** — bug fixes and tuning.
 
+## v0.3.1
+
+- Trimmed the closing lines from the title screen's "Why this exists" note.
+
 ## v0.3.0
 
 - **Removed the random explosions.** They fired every 1.5–4s with no cause and
