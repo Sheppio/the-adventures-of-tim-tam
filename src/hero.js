@@ -30,6 +30,8 @@ export class Hero {
     this.hitThisSwing = new Set();
     this.blinkT = 0;
     this.eyeWander = 0;
+    this.wakeGrace = 0;        // brief post-getup window where he can't be re-floored
+    this._wasConscious = true;
   }
 
   get x() { return this.rag.p.hips.x; }
@@ -99,6 +101,17 @@ export class Hero {
     if (!this.conscious) return;
     const hips = this.rag.p.hips;
     const dir = Math.sign(hips.x - fromX) || 1;
+    // Just got up: absorb one knockdown-tier hit as a stagger. Without this
+    // a flock can chain him from one flop straight into the next and he
+    // spends the fight on his back, which isn't a fight.
+    if (power >= HERO.knockdownThreshold && this.wakeGrace > 0) {
+      this.wakeGrace = 0;
+      this.rag.applyImpulse(dir * power * 0.55, -power * 0.35, 0.4);
+      sfxThud();
+      say(hips.x, hips.y - 70, pick(OOF), { color: '#ffd7d7', size: 19, maxLife: 70 });
+      addShake(5);
+      return;
+    }
     if (power >= HERO.knockdownThreshold) {
       this.flops++;
       this.rag.flop(HERO.flopDuration, dir * power * 0.42, -power * 0.5);
@@ -114,6 +127,10 @@ export class Hero {
 
   update(input) {
     const rag = this.rag;
+    // Arm the grace window on the frame he finishes standing up.
+    if (rag.conscious && !this._wasConscious) this.wakeGrace = HERO.wakeGrace;
+    this._wasConscious = rag.conscious;
+    if (this.wakeGrace > 0) this.wakeGrace--;
     if (this.slapCd > 0) this.slapCd--;
     if (this.boomCd > 0) this.boomCd--;
     if (this.swing > 0) this.swing--;

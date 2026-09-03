@@ -130,3 +130,9 @@ Please do. Ideas that are wide open:
 
 MIT — see [LICENSE](LICENSE). Take it, fork it, sell it, ship it. Just please
 ship it on the right day.
+
+## Version
+
+The build number is shown on the title screen. It lives in `VERSION` in
+[`src/config.js`](src/config.js) — bump it on every push. History in
+[CHANGELOG.md](CHANGELOG.md).

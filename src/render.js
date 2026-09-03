@@ -448,6 +448,23 @@ export function drawBaguette(ctx, hero) {
 
 // ---------------------------------------------------------------------- geese
 
+// One goose wing, in the body's local space. `side` is 1 for the near wing
+// and negative for the far one, which also scales it down for depth.
+function drawWing(ctx, f, beat, side) {
+  const up = beat * 0.9 * (side < 0 ? 0.8 : 1);
+  ctx.save();
+  ctx.translate(-f * 3, -2);
+  ctx.rotate(-f * (up + 0.15));
+  ctx.scale(1, Math.abs(side));
+  ctx.fillStyle = side < 0 ? '#d9d5c8' : '#eeebe0';
+  ctx.strokeStyle = 'rgba(42,26,16,0.6)';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.ellipse(-f * 12, 0, 20, 8.5, -f * 0.25, 0, TAU);
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
 export function drawGoose(ctx, g) {
   const fade = g.deadT >= 0 ? clamp(1 - Math.max(0, g.deadT - 200) / 60, 0, 1) : 1;
   ctx.globalAlpha = fade;
@@ -477,23 +494,37 @@ export function drawGoose(ctx, g) {
   ctx.stroke();
 
   // Body
+  const flapping = g.flying || g.state === 'buffet';
   ctx.save();
   ctx.translate(b.x, b.y);
-  ctx.rotate(clamp(b.vx * 0.03, -0.5, 0.5));
+  // A diving goose points along its own velocity. It is an arrow now.
+  ctx.rotate(g.state === 'dive'
+    ? Math.atan2(b.vy, b.vx) - (f < 0 ? Math.PI : 0)
+    : clamp(b.vx * 0.03, -0.5, 0.5));
   ctx.fillStyle = '#f7f5ee';
   ctx.strokeStyle = '#2a1a10';
   ctx.lineWidth = 2.5;
+
+  // Far wing, drawn behind the body so the flap reads as depth.
+  const beat = flapping ? Math.sin(g.flap) : 0;
+  if (flapping) drawWing(ctx, f, beat, -0.85);
+
   ctx.beginPath();
   ctx.ellipse(0, 0, 21, 15, 0, 0, TAU);
   ctx.fill(); ctx.stroke();
-  // Wing
-  ctx.fillStyle = '#e6e3d8';
-  ctx.beginPath();
-  ctx.ellipse(-f * 4, 1, 13, 9, -f * 0.2, 0, TAU);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(42,26,16,0.5)';
-  ctx.lineWidth = 1.6;
-  ctx.stroke();
+
+  // Near wing: folded ellipse at rest, a whole beating limb in the air.
+  if (flapping) {
+    drawWing(ctx, f, beat, 1);
+  } else {
+    ctx.fillStyle = '#e6e3d8';
+    ctx.beginPath();
+    ctx.ellipse(-f * 4, 1, 13, 9, -f * 0.2, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(42,26,16,0.5)';
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+  }
   // Tail
   ctx.fillStyle = '#f7f5ee';
   ctx.beginPath();
@@ -530,14 +561,16 @@ export function drawGoose(ctx, g) {
     ctx.moveTo(f * 1 + 3, -4); ctx.lineTo(f * 1 - 3, 1);
     ctx.stroke();
   } else {
-    ctx.fillStyle = '#fffdf5';
-    ctx.beginPath(); ctx.arc(f * 2, -2.5, 4, 0, TAU); ctx.fill();
-    ctx.fillStyle = '#181008';
-    ctx.beginPath(); ctx.arc(f * 3, -2.5, 2.1, 0, TAU); ctx.fill();
-    // Angry brow
-    ctx.strokeStyle = '#2a1a10'; ctx.lineWidth = 2.2;
+    const mad = g.raging;
+    ctx.fillStyle = mad ? '#ffdcd2' : '#fffdf5';
+    ctx.beginPath(); ctx.arc(f * 2, -2.5, mad ? 4.6 : 4, 0, TAU); ctx.fill();
+    ctx.fillStyle = mad ? '#c1231a' : '#181008';
+    ctx.beginPath(); ctx.arc(f * 3, -2.5, mad ? 2.6 : 2.1, 0, TAU); ctx.fill();
+    // Angry brow. Angrier when radicalised.
+    ctx.strokeStyle = mad ? '#8e1b12' : '#2a1a10';
+    ctx.lineWidth = mad ? 3 : 2.2;
     ctx.beginPath();
-    ctx.moveTo(f * -2, -7.5); ctx.lineTo(f * 7, -4.5);
+    ctx.moveTo(f * -2, mad ? -8.5 : -7.5); ctx.lineTo(f * 7, -4.5);
     ctx.stroke();
   }
   ctx.restore();

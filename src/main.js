@@ -1,7 +1,7 @@
 // The Adventures of Tim Tam -- one arena, one baguette, no death animation.
 import {
   VIEW_W, VIEW_H, VW, VH, ZOOM, CAM_Y, WORLD_W, GROUND_Y, GRAVITY,
-  HERO, BAGUETTE, DYNAMITE, RANDOM_BOOM, GOOSE, GREG, GTA6_DATE,
+  HERO, BAGUETTE, DYNAMITE, RANDOM_BOOM, GOOSE, GREG, GTA6_DATE, VERSION,
 } from './config.js';
 import { blast, rand, randInt, pick, clamp } from './physics.js';
 import { Hero } from './hero.js';
@@ -28,6 +28,9 @@ if (!ctx.roundRect) {
     return this;
   };
 }
+
+document.getElementById('version').textContent = VERSION;
+document.title = `The Adventures of Tim Tam ${VERSION}`;
 
 const ui = {
   title: document.getElementById('title'),
@@ -106,16 +109,28 @@ class World {
 
   maybeSpawnGeese() {
     const alive = this.geese.filter((g) => g.alive).length;
-    const cap = this.greg ? 4 : GOOSE.maxAlive;
+    // Ramp the cap with the body count, so the first minute isn't a wall.
+    const cap = this.greg ? 6 : Math.min(GOOSE.maxAlive, 5 + Math.floor(this.gooseKills / 3));
     if (alive >= cap) { this.spawnTimer = 60; return; }
     if (--this.spawnTimer > 0) return;
-    this.spawnTimer = GOOSE.respawnDelay + randInt(-40, 60);
-    // Geese arrive from offscreen, at altitude, unbothered by how.
+    this.spawnTimer = GOOSE.respawnDelay + randInt(-30, 50);
+    // Geese arrive from offscreen, at altitude, unbothered by how -- and
+    // in gangs, because one at a time was never a threat.
     const fromLeft = Math.random() < 0.5;
-    const x = fromLeft ? rand(20, 120) : rand(WORLD_W - 120, WORLD_W - 20);
-    const g = new Goose(x, GROUND_Y - rand(60, 260));
-    g.facing = fromLeft ? 1 : -1;
-    this.geese.push(g);
+    const n = Math.min(randInt(GOOSE.flock[0], GOOSE.flock[1]), cap - alive);
+    for (let i = 0; i < n; i++) {
+      const x = fromLeft ? rand(20, 150) : rand(WORLD_W - 150, WORLD_W - 20);
+      const g = new Goose(x, GROUND_Y - rand(60, 300) - i * 40);
+      g.facing = fromLeft ? 1 : -1;
+      this.geese.push(g);
+    }
+  }
+
+  // A goose going up in feathers radicalises everything that saw it.
+  enrageNear(x, y) {
+    for (const g of this.geese) {
+      if (g.alive && Math.hypot(g.x - x, g.y - y) < GOOSE.rageRadius) g.enrage();
+    }
   }
 
   explode(x, y, radius, force, opts = {}) {
@@ -126,7 +141,9 @@ class World {
 
     for (const g of this.geese) {
       if (!g.alive) continue;
-      if (Math.hypot(g.x - x, g.y - y) < radius * 0.85) { g.die(); this.gooseKills++; }
+      if (Math.hypot(g.x - x, g.y - y) < radius * 0.85) {
+        g.die(); this.gooseKills++; this.enrageNear(g.x, g.y);
+      }
     }
     if (this.greg && !this.greg.beaten) {
       const d = Math.hypot(this.greg.x - x, this.greg.y - y);
@@ -180,16 +197,17 @@ class World {
       g.update(hero);
       if (g.deadT > 260) { this.geese.splice(i, 1); continue; }
 
-      // Goose pecks Tim Tam. Tim Tam notices, barely.
-      const peck = g.peckHitbox();
-      if (peck && g.conscious) {
-        for (const p of hero.rag.list) {
-          if (Math.hypot(p.x - peck.x, p.y - peck.y) < peck.r + p.r) {
-            hero.takeHit(GOOSE.peckDamage, g.x, g.y);
-            g.peckT = 0;
-            g.honk();
-            break;
-          }
+      // Peck, wing buffet, or a full dive-bomb. Tim Tam notices these.
+      if (g.conscious && hero.conscious) {
+        for (const atk of g.attackHitboxes()) {
+          const landed = hero.rag.list.some(
+            (p) => Math.hypot(p.x - atk.x, p.y - atk.y) < atk.r + p.r);
+          if (!landed) continue;
+          hero.takeHit(atk.damage, g.x, g.y);
+          g.peckT = 0;
+          if (g.state === 'dive') g.crash();
+          else g.honk();
+          break;
         }
       }
     }
@@ -202,7 +220,7 @@ class World {
         const hitP = g.list.find((p) => segDist(seg, p.x, p.y) < 24 + p.r);
         if (hitP && hero.registerHit(g, hitP.x, hitP.y)) {
           g.hit(BAGUETTE.gooseKnockback, seg.x1, seg.y1);
-          if (!g.alive) this.gooseKills++;
+          if (!g.alive) { this.gooseKills++; this.enrageNear(g.x, g.y); }
         }
       }
       if (this.greg && !this.greg.beaten) {
@@ -486,6 +504,7 @@ window.__tt = {
   get hero() { return world.hero; },
   spawnGreg: () => world.introduceGreg(),
   boom: (x, y) => world.explode(x ?? world.hero.x, y ?? GROUND_Y - 40, 260, 60),
+  version: VERSION,
   addGoose: (x, y) => world.geese.push(new Goose(x ?? world.hero.x + 160, y ?? GROUND_Y - 40)),
 };
 

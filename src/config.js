@@ -29,6 +29,7 @@ export const HERO = {
   flopDuration: 78,        // frames spent as a limp noodle
   getUpDuration: 34,       // frames spent wobbling back to vertical
   knockdownThreshold: 9.5, // impulse magnitude that puts him on his back
+  wakeGrace: 55,           // frames after standing up where a knockdown only staggers
 };
 
 // The baguette. It is not balanced. It was never going to be balanced.
@@ -57,12 +58,27 @@ export const RANDOM_BOOM = {
 };
 
 export const GOOSE = {
-  speed: 1.3,
-  chargeSpeed: 2.9,
-  peckRange: 58,
-  peckDamage: 7.5,   // damage to Tim Tam's dignity, not his life
-  maxAlive: 7,
-  respawnDelay: 150,
+  hp: 3,
+  speed: 1.45,
+  chargeSpeed: 3.6,
+  maxAlive: 12,
+  respawnDelay: 95,
+  flock: [1, 3],           // geese arrive in gangs, not one at a time
+
+  // Three attacks, deliberately escalating. Only the peck is spammable;
+  // the two that put Tim Tam on his back both cost a cooldown, so being
+  // surrounded is dangerous without being unplayable.
+  peckRange: 62,
+  peckDamage: 8.5,         // below knockdownThreshold: staggers, never floors
+  buffetRange: 76,
+  buffetDamage: 13,        // wing shove. Above the threshold. He goes down.
+  diveRange: 540,
+  diveSpeed: 10.5,
+  diveDamage: 16,          // a goose doing 10px/frame straight at your head
+
+  // A launched goose enrages the ones that watched it happen.
+  rageRadius: 400,
+  rageDuration: 320,
 };
 
 export const GREG = {
@@ -71,6 +87,10 @@ export const GREG = {
   lungeSpeed: 8.5,
   spawnAfterGeese: 10,
 };
+
+// Bump this on every push. Shown on the title screen so you always know
+// which build you're actually playing. See CHANGELOG.md.
+export const VERSION = 'v0.2.0';
 
 // The joke that started all this.
 // GTA VI: November 19, 2026. Every other publisher fled the date.
