@@ -16,6 +16,7 @@ export class Ragdoll {
     this.jumpLock = 0;
     this.gait = 0;
     this.crouch = 0;
+    this.jumpBuffer = 0;
     this.limpTimer = 0;      // frames left flopping
     this.getUpTimer = 0;     // frames left wobbling upright
     this.armSwing = 0;
@@ -120,11 +121,20 @@ export class Ragdoll {
       if (hips.vy < -8) hips.setVel(hips.vx, -8);
     }
 
-    if (wantJump && grounded && this.jumpLock <= 0) {
-      hips.addVel(0, -(opts.jump ?? 12));
-      this.p.chest.addVel(0, -(opts.jump ?? 12) * 0.4);
-      this.jumpLock = 20;
-      this.crouch = -6 * this.scale;
+    // Jump is edge-triggered: `wantJump` is a fresh press, not the held key.
+    // Held-down would re-arm jumpLock on every landing, which keeps the leg
+    // spring switched off and leaves him squatting on the floor forever.
+    // The buffer lets a press that lands just before touchdown still count.
+    if (wantJump) this.jumpBuffer = 9;
+    if (this.jumpBuffer > 0) this.jumpBuffer--;
+
+    if (this.jumpBuffer > 0 && grounded && this.jumpLock <= 0) {
+      this.jumpBuffer = 0;
+      const j = opts.jump ?? 12;
+      // Launch the whole body. Kicking the hips alone just loads the leg
+      // constraints, which hand most of the impulse straight back.
+      for (const p of this.list) p.addVel(0, -j);
+      this.jumpLock = 14;
     }
 
     this.crouch = lerp(this.crouch, 0, 0.12);

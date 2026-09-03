@@ -156,7 +156,9 @@ class World {
 
     // --- input ---
     const input = {
-      left: held('left'), right: held('right'), jump: held('jump'),
+      left: held('left'), right: held('right'),
+      // Edge-triggered, so holding the key doesn't pin him to the ground.
+      jump: justPressed('jump'),
     };
     if (justPressed('slap')) hero.startSwing();
     if (justPressed('boom') && hero.canThrow()) {

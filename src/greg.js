@@ -125,7 +125,7 @@ export class Greg {
 
       case 'windup':
         this.rag.driveStand(0, false, { speed: 0 });
-        this.rag.crouch = 14;
+        this.rag.crouch = -13;
         if (this.stateT <= 0) {
           this.lungeDir = Math.sign(dx) || 1;
           this.enter('lunge', 32);

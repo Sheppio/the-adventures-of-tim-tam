@@ -21,7 +21,7 @@ export const AIR_DRAG = 0.994;
 // Tim Tam
 export const HERO = {
   speed: 3.4,
-  jump: 13.5,
+  jump: 11.2,
   standHeight: 74,
   slapCooldown: 20,
   slapDuration: 16,
