@@ -6,6 +6,26 @@ Versions are `vMAJOR.MINOR.PATCH`. The version shown on the title screen is
 - **MINOR** — new mechanics, enemies, or anything that changes how it plays.
 - **PATCH** — bug fixes and tuning.
 
+## v0.7.0
+
+- **The canvas fills the window.** It used to render a fixed 1280×720 and
+  letterbox, which on a phone left big black bars. The 1280×720 framing is now
+  a *minimum* — every window shows at least that much — and spare aspect ratio
+  becomes more world instead of bars: extra sky and earth on a tall screen,
+  extra arena on a wide one. Phone landscape goes from 1024 to 1358 world px
+  wide; portrait gets ~900px of earth under the street.
+- **Things buried in the soil.** Dinosaur skeletons mid-excavation, ammonites,
+  ribcages, amphorae, treasure chests, an abandoned bicycle, pottery shards, a
+  petrified baguette, a goose skeleton (the feud predates all of us) and one of
+  Greg's ancestral staplers. Plus strata, roots and pebbles. Shallow finds are
+  sparse so the default framing doesn't read as clutter; a denser deep layer
+  only appears on tall screens.
+- Sky furniture (sun, clouds, bunting, birds, planes) now hangs off the ground
+  line rather than the top of the view, so a tall screen doesn't strand the
+  bunting hundreds of pixels above the village. More clouds, spread higher.
+- Eiffel Tower scaled to 1.3 so it fits the minimum framing — the deeper soil
+  raised the horizon and was clipping its tip.
+
 ## v0.6.1
 
 - Touch buttons enlarged: 62 → 76px (62px on short screens, up from 52px).

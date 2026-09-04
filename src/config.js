@@ -1,19 +1,45 @@
 // The Adventures of Tim Tam -- global knobs.
 // Everything absurd in this game has a number here. Turn them up.
 
+// The framing the game is composed for. Any window shows at least this much.
 export const VIEW_W = 1280;
 export const VIEW_H = 720;
 
 // The world is drawn zoomed in a little, so the characters have some presence
 // instead of being distant twitching specks.
 export const ZOOM = 1.25;
-export const VW = VIEW_W / ZOOM;          // visible world width
-export const VH = VIEW_H / ZOOM;          // visible world height
 
 // One arena. That's the whole game. Side-scrolling, no levels, no lore.
 export const WORLD_W = 3600;
 export const GROUND_Y = 620;
-export const CAM_Y = GROUND_Y + 46 - VH;   // vertical camera anchor (constant)
+export const SOIL = 128;                   // world px of earth below the surface
+
+const BASE_VH = VIEW_H / ZOOM;
+
+// The canvas fills whatever window it is given rather than letterboxing: the
+// design framing above is always fully visible, and spare aspect ratio becomes
+// more world -- extra sky and earth on a tall screen, extra arena on a wide
+// one. Everything here is recomputed by resizeView() on every resize, so read
+// it through the object; a destructured copy goes stale.
+export const view = {
+  w: VIEW_W, h: VIEW_H,                    // canvas size, design px
+  vw: VIEW_W / ZOOM, vh: BASE_VH,          // visible world size
+  camY: GROUND_Y + SOIL - BASE_VH,         // world y at the top of the view
+  soil: SOIL,
+};
+
+export function resizeView(cw, ch) {
+  const scale = Math.min(cw / VIEW_W, ch / VIEW_H);
+  view.w = Math.max(VIEW_W, cw / scale);
+  view.h = Math.max(VIEW_H, ch / scale);
+  view.vw = view.w / ZOOM;
+  view.vh = view.h / ZOOM;
+  // Split spare height between sky and earth, so the action doesn't ride at
+  // the top of a tall phone with everything below it empty.
+  view.soil = SOIL + (view.vh - BASE_VH) * 0.55;
+  view.camY = GROUND_Y + view.soil - view.vh;
+  return scale;
+}
 
 export const GRAVITY = 0.62;
 export const AIR_DRAG = 0.994;
@@ -84,7 +110,7 @@ export const GREG = {
 
 // Bump this on every push. Shown on the title screen so you always know
 // which build you're actually playing. See CHANGELOG.md.
-export const VERSION = 'v0.6.1';
+export const VERSION = 'v0.7.0';
 
 // The joke that started all this.
 // GTA VI: November 19, 2026. Every other publisher fled the date.

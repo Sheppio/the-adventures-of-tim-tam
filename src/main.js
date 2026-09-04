@@ -1,6 +1,6 @@
 // The Adventures of Tim Tam -- one arena, one baguette, no death animation.
 import {
-  VIEW_W, VIEW_H, VW, VH, ZOOM, CAM_Y, WORLD_W, GROUND_Y, GRAVITY,
+  ZOOM, WORLD_W, GROUND_Y, GRAVITY, view, resizeView,
   HERO, BAGUETTE, DYNAMITE, GOOSE, GREG, GTA6_DATE, VERSION,
 } from './config.js';
 import { blast, rand, randInt, pick, clamp } from './physics.js';
@@ -347,9 +347,9 @@ class World {
   }
 
   updateCamera() {
-    const target = clamp(this.hero.x - VW / 2, 0, WORLD_W - VW);
+    const target = clamp(this.hero.x - view.vw / 2, 0, WORLD_W - view.vw);
     this.cam += (target - this.cam) * 0.09;
-    this.cam = clamp(this.cam, 0, WORLD_W - VW);
+    this.cam = clamp(this.cam, 0, WORLD_W - view.vw);
   }
 
   draw() {
@@ -359,7 +359,7 @@ class World {
     const oy = sh ? rand(-sh, sh) : 0;
     // One transform for the whole world: zoom, then camera.
     ctx.scale(ZOOM, ZOOM);
-    ctx.translate(-this.cam + ox, -CAM_Y + oy);
+    ctx.translate(-this.cam + ox, -view.camY + oy);
 
     R.drawBackground(ctx, this.cam);
     R.drawGround(ctx, this.cam);
@@ -383,22 +383,22 @@ class World {
 
   drawArenaEdges() {
     // Soft vignette so the single arena feels like a stage.
-    const g = ctx.createLinearGradient(0, 0, VIEW_W, 0);
+    const g = ctx.createLinearGradient(0, 0, view.w, 0);
     g.addColorStop(0, 'rgba(40,30,20,0.28)');
     g.addColorStop(0.12, 'rgba(40,30,20,0)');
     g.addColorStop(0.88, 'rgba(40,30,20,0)');
     g.addColorStop(1, 'rgba(40,30,20,0.28)');
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    ctx.fillRect(0, 0, view.w, view.h);
   }
 
   drawGregOffscreenHint() {
     const sx = (this.greg.x - this.cam) * ZOOM;
-    if (sx > 40 && sx < VIEW_W - 40) return;
-    const edge = sx <= 40 ? 52 : VIEW_W - 52;
+    if (sx > 40 && sx < view.w - 40) return;
+    const edge = sx <= 40 ? 52 : view.w - 52;
     const dir = sx <= 40 ? -1 : 1;
     ctx.save();
-    ctx.translate(edge, (GROUND_Y - CAM_Y) * ZOOM - 210);
+    ctx.translate(edge, (GROUND_Y - view.camY) * ZOOM - 210);
     ctx.fillStyle = 'rgba(59,110,165,0.9)';
     ctx.strokeStyle = '#f5f1e6';
     ctx.lineWidth = 3;
@@ -449,13 +449,19 @@ const STEP = 1000 / 60;
 
 function fitCanvas() {
   const wrap = document.getElementById('stage');
-  const scale = Math.min(wrap.clientWidth / VIEW_W, wrap.clientHeight / VIEW_H);
+  const cw = wrap.clientWidth, ch = wrap.clientHeight;
+  if (!cw || !ch) return;
+  // The canvas covers the container; resizeView decides how much world that
+  // is. One design px is `scale` CSS px, so the context is scaled by that as
+  // well as by the device ratio.
+  const scale = resizeView(cw, ch);
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  canvas.style.width = VIEW_W * scale + 'px';
-  canvas.style.height = VIEW_H * scale + 'px';
-  canvas.width = Math.round(VIEW_W * dpr);
-  canvas.height = Math.round(VIEW_H * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvas.style.width = cw + 'px';
+  canvas.style.height = ch + 'px';
+  canvas.width = Math.round(cw * dpr);
+  canvas.height = Math.round(ch * dpr);
+  const s = scale * dpr;
+  ctx.setTransform(s, 0, 0, s, 0, 0);
 }
 
 function startGame() {
@@ -553,6 +559,7 @@ window.__tt = {
   spawnGreg: () => world.introduceGreg(),
   boom: (x, y) => world.explode(x ?? world.hero.x, y ?? GROUND_Y - 40, 260, 60),
   version: VERSION,
+  view,
   flyover: (kind) => R.spawnFlyover(world.cam, kind),
   addGoose: (x, y) => world.geese.push(new Goose(x ?? world.hero.x + 160, y ?? GROUND_Y - 40)),
 };

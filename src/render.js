@@ -1,5 +1,5 @@
 // All the drawing. No sprites, no atlas, no artist. Just vectors and hubris.
-import { GROUND_Y, WORLD_W, VW, VH, CAM_Y } from './config.js';
+import { GROUND_Y, WORLD_W, view } from './config.js';
 import { clamp } from './physics.js';
 
 const TAU = Math.PI * 2;
@@ -36,9 +36,12 @@ function outlined(ctx, fn, stroke = '#2a1a10', w = 3) {
 
 // ---------------------------------------------------------------- background
 
-const clouds = Array.from({ length: 14 }, (_, i) => ({
+// Weighted low so the default framing still gets its share, with a scattering
+// up high that only tall screens ever see.
+const clouds = Array.from({ length: 26 }, (_, i) => ({
   x: (i * 337) % (WORLD_W + 600),
-  y: 60 + ((i * 97) % 170),
+  above: i < 14 ? 218 + ((i * 97) % 170)          // height above the ground line
+                : 430 + ((i * 149) % 470),
   s: 0.6 + ((i * 13) % 10) / 10,
   d: 0.12 + ((i % 3) * 0.05),
 }));
@@ -90,7 +93,7 @@ const tufts = Array.from({ length: 90 }, (_, i) => {
 // translated by the camera), so all coordinates here are world coordinates.
 // Parallax layers translate by cam*(1-depth) to partially undo the camera.
 export function drawBackground(ctx, cam) {
-  const top = CAM_Y;
+  const top = view.camY;
 
   // Sky
   const sky = ctx.createLinearGradient(0, top, 0, GROUND_Y);
@@ -98,10 +101,10 @@ export function drawBackground(ctx, cam) {
   sky.addColorStop(0.55, '#c7e7f5');
   sky.addColorStop(1, '#f6e7c9');
   ctx.fillStyle = sky;
-  ctx.fillRect(cam - 40, top - 40, VW + 80, VH + 80);
+  ctx.fillRect(cam - 40, top - 40, view.vw + 80, view.vh + 80);
 
   // Sun
-  const sunX = cam + VW * 0.82, sunY = top + 70;
+  const sunX = cam + view.vw * 0.82, sunY = GROUND_Y - 378;
   ctx.save();
   ctx.globalAlpha = 0.75;
   const sg = ctx.createRadialGradient(sunX, sunY, 8, sunX, sunY, 130);
@@ -118,7 +121,7 @@ export function drawBackground(ctx, cam) {
     // Wrap the cloud's parallaxed screen position, then push it back to world.
     const screenX = (((c.x - cam * c.d) % span) + span) % span - 240;
     const cx = cam + screenX;
-    const y = top + c.y;
+    const y = GROUND_Y - c.above;
     const s = c.s;
     ctx.beginPath();
     ctx.arc(cx, y, 26 * s, 0, TAU);
@@ -134,7 +137,7 @@ export function drawBackground(ctx, cam) {
   // why it floated.
   ctx.save();
   ctx.translate(cam * 0.84, 0);
-  drawTower(ctx, 640, GROUND_Y, 1.5);
+  drawTower(ctx, 640, GROUND_Y, 1.3);
   ctx.restore();
 
   // Far skyline, between the tower's parallax and the village's so the depth
@@ -198,7 +201,7 @@ export function drawBackground(ctx, cam) {
   // Bunting strung across the arena, sagging optimistically.
   ctx.save();
   ctx.translate(cam * 0.28, 0);
-  const buntY = top + 96;
+  const buntY = GROUND_Y - 352;
   const colors = ['#2b4a8b', '#f5f1e6', '#c0453b'];
   ctx.strokeStyle = 'rgba(50,40,30,0.5)';
   ctx.lineWidth = 2;
@@ -275,7 +278,7 @@ export function updateSky(cam) {
     f.phase += f.kind === 'plane' ? 0.5 : 0.22;
     // Despawn on viewport offset, which is where the parallax actually puts it.
     const off = f.x - cam * (1 - f.d);
-    if (off < -620 || off > VW + 620) flyers.splice(i, 1);
+    if (off < -620 || off > view.vw + 620) flyers.splice(i, 1);
   }
 
   if (--flyerTimer > 0 || flyers.length > 2) return;
@@ -287,14 +290,14 @@ export function spawnFlyover(cam, kind) {
   const plane = kind ? kind === 'plane' : Math.random() < 0.34;
   const dir = Math.random() < 0.5 ? 1 : -1;
   const d = plane ? 0.34 : 0.62;
-  const edge = dir > 0 ? -260 : VW + 260;
+  const edge = dir > 0 ? -260 : view.vw + 260;
   flyers.push({
     kind: plane ? 'plane' : 'birds',
     d,
     x: cam * (1 - d) + edge,
-    // The plane flies under the bunting (CAM_Y+96) and over the rooftops:
+    // The plane flies under the bunting (GROUND_Y-352) and over the rooftops:
     // the bunting is a nearer layer, so it slices the banner if they overlap.
-    y: CAM_Y + (plane ? 152 + Math.random() * 78 : 52 + Math.random() * 150),
+    y: GROUND_Y - (plane ? 250 + Math.random() * 80 : 230 + Math.random() * 260),
     vx: dir * (plane ? 2.4 + Math.random() * 0.8 : 1.35 + Math.random() * 0.6),
     dir,
     phase: 0,
@@ -446,27 +449,349 @@ function drawTower(ctx, x, baseY, s) {
   ctx.restore();
 }
 
-export function drawGround(ctx, cam) {
-  const g = ctx.createLinearGradient(0, GROUND_Y, 0, CAM_Y + VH + 40);
-  g.addColorStop(0, '#a4936f');
-  g.addColorStop(1, '#6f6149');
-  ctx.fillStyle = g;
-  ctx.fillRect(cam - 40, GROUND_Y, VW + 80, VH);
-  ctx.fillStyle = '#7f7154';
-  ctx.fillRect(cam - 40, GROUND_Y, VW + 80, 6);
+// ------------------------------------------------------- what's in the soil
 
-  // Cobbles
+const roots = Array.from({ length: 120 }, (_, i) => {
+  const q = (n) => ((Math.sin(i * 5.13 + n * 31.1) * 27183.4) % 1 + 1) % 1;
+  return { x: q(1) * WORLD_W, h: 22 + q(2) * 70, b: (q(3) - 0.5) * 46, w: 1 + q(4) * 2.4 };
+});
+
+const pebbles = Array.from({ length: 320 }, (_, i) => {
+  const q = (n) => ((Math.sin(i * 9.44 + n * 17.9) * 15731.9) % 1 + 1) % 1;
+  return {
+    x: q(1) * WORLD_W, y: GROUND_Y + 30 + q(2) * 900,
+    r: 2 + q(3) * 5, a: q(4) * 3.1,
+  };
+});
+
+// Buried curiosities. Deliberately low-contrast: they are scenery you notice
+// on the second look, not props, and nothing down here is interactive.
+const BURIED_KINDS = [
+  'ammonite', 'ribs', 'amphora', 'chest', 'bike',
+  'stapler', 'baguette', 'goose', 'ammonite', 'shards', 'ribs',
+];
+
+const buried = (() => {
+  const out = [];
+  const layer = (count, seed, phase, depth0, depthSpan, dinoEvery) => {
+    for (let i = 0; i < count; i++) {
+      const q = (n) => ((Math.sin(i * seed + n * phase) * 19571.3) % 1 + 1) % 1;
+      out.push({
+        x: 120 + (i * (WORLD_W - 240)) / count + q(1) * 70,
+        depth: depth0 + q(2) * depthSpan,
+        kind: i % dinoEvery === 4 ? 'dino'
+          : BURIED_KINDS[Math.floor(q(5) * BURIED_KINDS.length)],
+        s: 0.7 + q(6) * 0.55,
+        rot: (q(7) - 0.5) * 0.44,
+      });
+    }
+  };
+  // Shallow: what a 16:9 screen sees. Kept sparse so it doesn't read as clutter.
+  layer(28, 8.17, 27.3, 42, 74, 9);
+  // Deep: only on tall screens, so it can be denser without crowding the
+  // default framing.
+  layer(46, 4.61, 19.7, 190, 720, 11);
+  return out;
+})();
+
+const BONE = 'rgba(232,224,203,0.62)';
+const BONE_LINE = 'rgba(120,106,80,0.45)';
+const RELIC = 'rgba(126,101,72,0.65)';
+const METAL = 'rgba(150,152,157,0.55)';
+
+function drawBuried(ctx, cam, bottom) {
+  for (const b of buried) {
+    const y = GROUND_Y + b.depth;
+    if (y > bottom + 60) continue;
+    if (b.x < cam - 260 || b.x > cam + view.vw + 260) continue;
+    ctx.save();
+    ctx.translate(b.x, y);
+    ctx.rotate(b.rot);
+    ctx.scale(b.s, b.s);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    (BURIED_ART[b.kind] || BURIED_ART.ribs)(ctx);
+    ctx.restore();
+  }
+}
+
+const BURIED_ART = {
+  // The centrepiece: something enormous and long dead, mid-excavation.
+  dino(ctx) {
+    ctx.fillStyle = BONE;
+    ctx.strokeStyle = BONE_LINE;
+    ctx.lineWidth = 1.6;
+    // Skull with a long jaw.
+    ctx.beginPath();
+    ctx.moveTo(-104, 0);
+    ctx.quadraticCurveTo(-128, -14, -150, -6);
+    ctx.quadraticCurveTo(-160, 0, -150, 6);
+    ctx.quadraticCurveTo(-126, 12, -104, 8);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(90,78,58,0.5)';
+    ctx.beginPath(); ctx.arc(-134, -2, 3.4, 0, TAU); ctx.fill();   // eye socket
+    // Teeth.
+    ctx.strokeStyle = BONE;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 6; i++) {
+      const tx = -146 + i * 8;
+      ctx.beginPath(); ctx.moveTo(tx, 7); ctx.lineTo(tx + 1, 12); ctx.stroke();
+    }
+    // Spine, arcing up over the body and tapering into a tail.
+    ctx.strokeStyle = BONE;
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(-104, 2);
+    ctx.quadraticCurveTo(-50, -30, 10, -18);
+    ctx.quadraticCurveTo(70, -8, 128, 20);
+    ctx.stroke();
+    // Ribs hanging off it.
+    ctx.lineWidth = 3.4;
+    for (let i = 0; i < 7; i++) {
+      const t = i / 6;
+      const sx = -60 + t * 96;
+      const sy = -26 + t * 12;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.quadraticCurveTo(sx + 10, sy + 26, sx + 2, sy + 44);
+      ctx.stroke();
+    }
+    // Legs, such as they remain.
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-30, -22); ctx.lineTo(-38, 22); ctx.lineTo(-20, 40);
+    ctx.moveTo(46, -12); ctx.lineTo(56, 30); ctx.lineTo(38, 46);
+    ctx.stroke();
+  },
+
+  ammonite(ctx) {
+    ctx.strokeStyle = 'rgba(150,132,100,0.6)';
+    ctx.fillStyle = 'rgba(208,192,158,0.4)';
+    ctx.lineWidth = 3;
+    // Bounds matter here: the growth is exponential, and the original
+    // reached a 170px radius -- a snail larger than the dinosaur.
+    const spiral = (a) => 2.4 * Math.pow(1.12, a * 2.2);
+    ctx.beginPath();
+    for (let a = 0; a < 12.5; a += 0.12) {
+      const rr = spiral(a);
+      const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+      a === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    // Chamber ribs.
+    ctx.lineWidth = 1.4;
+    for (let a = 1.6; a < 12.5; a += 0.85) {
+      const rr = spiral(a);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * rr * 0.55, Math.sin(a) * rr * 0.55);
+      ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      ctx.stroke();
+    }
+  },
+
+  ribs(ctx) {
+    ctx.strokeStyle = BONE;
+    ctx.lineWidth = 3.6;
+    ctx.beginPath(); ctx.moveTo(-26, 0); ctx.lineTo(30, 6); ctx.stroke();
+    ctx.lineWidth = 2.8;
+    for (let i = 0; i < 5; i++) {
+      const sx = -20 + i * 12;
+      ctx.beginPath();
+      ctx.moveTo(sx, 1 + i);
+      ctx.quadraticCurveTo(sx + 7, 16 + i, sx + 1, 27 + i);
+      ctx.stroke();
+    }
+  },
+
+  amphora(ctx) {
+    ctx.fillStyle = RELIC;
+    ctx.strokeStyle = 'rgba(70,54,36,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-4, -26); ctx.lineTo(4, -26);
+    ctx.quadraticCurveTo(22, -8, 17, 14);
+    ctx.quadraticCurveTo(12, 32, 0, 34);
+    ctx.quadraticCurveTo(-12, 32, -17, 14);
+    ctx.quadraticCurveTo(-22, -8, -4, -26);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.moveTo(-5, -22); ctx.quadraticCurveTo(-19, -14, -14, -2);
+    ctx.moveTo(5, -22); ctx.quadraticCurveTo(19, -14, 14, -2);
+    ctx.stroke();
+  },
+
+  chest(ctx) {
+    ctx.fillStyle = 'rgba(96,68,42,0.7)';
+    ctx.strokeStyle = 'rgba(52,38,22,0.55)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.rect(-24, -4, 48, 26); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-24, -4); ctx.quadraticCurveTo(0, -28, 24, -4);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = METAL;
+    ctx.fillRect(-3, -14, 6, 26);
+    ctx.beginPath(); ctx.arc(0, 8, 4, 0, TAU); ctx.fill();
+  },
+
+  // Somebody's Tour de France ended badly.
+  bike(ctx) {
+    ctx.strokeStyle = METAL;
+    ctx.lineWidth = 2.6;
+    ctx.beginPath(); ctx.arc(-20, 0, 15, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.arc(20, 2, 15, 0, TAU); ctx.stroke();
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(-20, 0); ctx.lineTo(-2, -12); ctx.lineTo(20, 2);
+    ctx.moveTo(-2, -12); ctx.lineTo(2, 2); ctx.lineTo(-20, 0);
+    ctx.moveTo(-2, -12); ctx.lineTo(-8, -20);
+    ctx.stroke();
+  },
+
+  // Greg's ancestors were middle management too.
+  stapler(ctx) {
+    ctx.fillStyle = 'rgba(74,86,104,0.65)';
+    ctx.strokeStyle = 'rgba(40,48,60,0.5)';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.moveTo(-20, 6); ctx.lineTo(18, 6); ctx.lineTo(20, 0);
+    ctx.lineTo(-18, -2); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-18, -3); ctx.lineTo(16, -1); ctx.lineTo(16, -7); ctx.lineTo(-18, -9);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  },
+
+  // The first baguette. Petrified, but structurally unchanged.
+  baguette(ctx) {
+    ctx.fillStyle = 'rgba(186,166,128,0.55)';
+    ctx.strokeStyle = 'rgba(104,88,62,0.5)';
+    ctx.lineWidth = 2;
+    const L = 74, hx = 4, tx = L - 7, rH = 6, rT = 6.4;
+    ctx.beginPath();
+    ctx.moveTo(hx - L / 2, -rH);
+    ctx.quadraticCurveTo(0, -9, tx - L / 2, -rT);
+    ctx.arc(tx - L / 2, 0, rT, -Math.PI / 2, Math.PI / 2);
+    ctx.quadraticCurveTo(0, 9, hx - L / 2, rH);
+    ctx.arc(hx - L / 2, 0, rH, Math.PI / 2, -Math.PI / 2);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.lineWidth = 1.6;
+    for (let i = 1; i <= 4; i++) {
+      const x = -L / 2 + (L / 5) * i;
+      ctx.beginPath(); ctx.moveTo(x - 3, -4); ctx.lineTo(x + 3, 4); ctx.stroke();
+    }
+  },
+
+  // The feud predates all of us.
+  goose(ctx) {
+    ctx.strokeStyle = BONE;
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.moveTo(-16, 8);
+    ctx.quadraticCurveTo(2, 10, 14, 4);      // spine
+    ctx.moveTo(14, 4);
+    ctx.quadraticCurveTo(26, -6, 24, -20);   // neck
+    ctx.stroke();
+    ctx.lineWidth = 1.8;
+    for (let i = 0; i < 4; i++) {
+      const sx = -10 + i * 8;
+      ctx.beginPath();
+      ctx.moveTo(sx, 9); ctx.quadraticCurveTo(sx + 4, 18, sx, 24);
+      ctx.stroke();
+    }
+    ctx.fillStyle = BONE;
+    ctx.beginPath(); ctx.ellipse(24, -24, 6, 4.5, -0.3, 0, TAU); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(29, -25); ctx.lineTo(41, -27); ctx.lineTo(29, -21);
+    ctx.closePath(); ctx.fill();
+  },
+
+  shards(ctx) {
+    ctx.fillStyle = RELIC;
+    ctx.strokeStyle = 'rgba(70,54,36,0.45)';
+    ctx.lineWidth = 1.6;
+    const bits = [[-18, 2, 14, 9], [-2, 8, 17, 7], [14, -2, 11, 10]];
+    for (const [x, y, w, h] of bits) {
+      ctx.beginPath();
+      ctx.moveTo(x, y); ctx.lineTo(x + w, y - h * 0.4);
+      ctx.lineTo(x + w * 0.7, y + h); ctx.lineTo(x - 2, y + h * 0.6);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+  },
+};
+
+export function drawGround(ctx, cam) {
+  const bottom = view.camY + view.vh + 40;
+  const L = cam - 40, W = view.vw + 80;
+
+  // Earth. Three stops rather than two, because on a tall screen the soil is
+  // most of the picture and a flat ramp reads as a wall.
+  const g = ctx.createLinearGradient(0, GROUND_Y, 0, bottom);
+  g.addColorStop(0, '#a4936f');
+  g.addColorStop(0.22, '#8a7a58');
+  g.addColorStop(0.6, '#6d5f45');
+  g.addColorStop(1, '#4c4231');
+  ctx.fillStyle = g;
+  ctx.fillRect(L, GROUND_Y, W, bottom - GROUND_Y);
+
+  // Strata: broad bands with a slow wave, so the depth reads as geology.
+  ctx.save();
+  ctx.beginPath(); ctx.rect(L, GROUND_Y, W, bottom - GROUND_Y); ctx.clip();
+  for (let i = 0; i < 9; i++) {
+    const y = GROUND_Y + 92 + i * 118;
+    if (y > bottom) break;
+    ctx.fillStyle = i % 2 ? 'rgba(60,46,28,0.10)' : 'rgba(196,172,132,0.09)';
+    ctx.beginPath();
+    ctx.moveTo(L, y);
+    for (let x = 0; x <= W; x += 60) {
+      ctx.lineTo(L + x, y + Math.sin((L + x) * 0.004 + i * 1.7) * 13);
+    }
+    ctx.lineTo(L + W, y + 54); ctx.lineTo(L, y + 54);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // Cobbled surface, a shallow band only -- it used to tile all the way down,
+  // which looked like paving stacked to the centre of the earth.
   ctx.fillStyle = 'rgba(70,54,34,0.13)';
   const x0 = Math.floor((cam - 46) / 46) * 46;
-  for (let x = x0; x < cam + VW + 46; x += 46) {
-    for (let y = GROUND_Y + 14; y < CAM_Y + VH + 40; y += 22) {
+  const cobbleTo = Math.min(GROUND_Y + 62, bottom);
+  for (let x = x0; x < cam + view.vw + 46; x += 46) {
+    for (let y = GROUND_Y + 14; y < cobbleTo; y += 22) {
       const off = ((y / 22) | 0) % 2 ? 23 : 0;
       ctx.fillRect(x + off, y, 36, 13);
     }
   }
+
+  // Roots trailing down out of the topsoil.
+  ctx.strokeStyle = 'rgba(58,42,24,0.30)';
+  ctx.lineCap = 'round';
+  for (const rt of roots) {
+    if (rt.x < cam - 60 || rt.x > cam + view.vw + 60) continue;
+    ctx.lineWidth = rt.w;
+    ctx.beginPath();
+    ctx.moveTo(rt.x, GROUND_Y + 4);
+    ctx.quadraticCurveTo(rt.x + rt.b, GROUND_Y + rt.h * 0.6, rt.x + rt.b * 0.4, GROUND_Y + rt.h);
+    ctx.stroke();
+  }
+
+  // Pebbles.
+  ctx.fillStyle = 'rgba(52,40,24,0.18)';
+  for (const p of pebbles) {
+    if (p.y > bottom) continue;
+    if (p.x < cam - 40 || p.x > cam + view.vw + 40) continue;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.r, p.r * 0.72, p.a, 0, TAU);
+    ctx.fill();
+  }
+
+  drawBuried(ctx, cam, bottom);
+  ctx.restore();
+
+  ctx.fillStyle = '#7f7154';
+  ctx.fillRect(L, GROUND_Y, W, 6);
   ctx.fillStyle = '#69793f';
   for (const t of tufts) {
-    if (t.x < cam - 40 || t.x > cam + VW + 40) continue;
+    if (t.x < cam - 40 || t.x > cam + view.vw + 40) continue;
     ctx.fillRect(t.x, GROUND_Y - t.h, t.w, t.h);
     ctx.fillRect(t.x + 4, GROUND_Y - t.h * 0.7, t.w, t.h * 0.7);
   }

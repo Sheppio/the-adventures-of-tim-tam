@@ -46,6 +46,11 @@ the Eiffel Tower, a hazy rooftop skyline, the shopfronts you fight in front of,
 and bunting strung across the foreground. Twenty different shop names, the odd
 V of birds overhead, and now and then a plane towing a banner.
 
+The canvas fills whatever window it gets rather than letterboxing: a wider
+screen sees more arena, a taller one more sky and more earth. Dig into that
+earth and there are dinosaur skeletons, ammonites, buried bicycles, a petrified
+baguette and one of Greg's ancestral staplers.
+
 ### Tim Tam cannot die
 
 There is no health bar. There is no death animation, because nobody wrote one.
