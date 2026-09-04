@@ -6,6 +6,12 @@ Versions are `vMAJOR.MINOR.PATCH`. The version shown on the title screen is
 - **MINOR** — new mechanics, enemies, or anything that changes how it plays.
 - **PATCH** — bug fixes and tuning.
 
+## v0.6.1
+
+- Touch buttons enlarged: 62 → 76px (62px on short screens, up from 52px).
+- Jump moved to the left cluster, centred above ◀ ▶, so all movement is under
+  one thumb and the right hand is just baguette and dynamite.
+
 ## v0.6.0
 
 - **Fullscreen.** A ⛶ button next to mute, or <kbd>F</kbd>. Uses the Fullscreen
