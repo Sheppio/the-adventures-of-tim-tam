@@ -6,6 +6,23 @@ Versions are `vMAJOR.MINOR.PATCH`. The version shown on the title screen is
 - **MINOR** — new mechanics, enemies, or anything that changes how it plays.
 - **PATCH** — bug fixes and tuning.
 
+## v0.5.1
+
+- **The fight no longer starts before you press the button.** The title screen
+  was deliberately simulating the whole game behind the menu, which with an
+  82%-opaque overlay just read as the game having already begun. The village
+  still lives — sky, clouds, birds, planes, Tim Tam standing about — but no
+  geese spawn, no Greg arrives, and the keyboard does nothing until `SLAP SOME
+  GEESE` is pressed.
+- **Fixed Tim Tam moonwalking.** Standing still, he drifted right at a steady
+  3px/s — 180px a minute, unbounded. The hips-rooting step cancelled only 92%
+  of the constraint solver's sideways nudge each frame, and since the body is
+  asymmetric (baguette arm out to one side) the surviving 8% always leaned the
+  same way and integrated. It is cancelled outright when no movement is asked
+  for. Only visible on the title screen, but it applied in-game too.
+- Title and play now share one fixed-step update path; the title scene was
+  previously stepped once per rendered frame.
+
 ## v0.5.0
 
 - **The arena freezes once Greg is beaten.** The victory panel used to appear

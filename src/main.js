@@ -158,26 +158,30 @@ class World {
   }
 
 
-  update() {
+  // `idle` is the title screen: the village stays alive -- sky, clouds,
+  // Tim Tam standing about -- but no geese, no Greg, and no player control.
+  // The fight starts when the button is pressed, not when the page loads.
+  update(idle = false) {
     // Greg is down and everything has settled: the arena holds still behind
     // the victory panel instead of carrying on without the player.
     if (this.frozen) { endFrameInput(); return; }
 
     this.frame++;
     const hero = this.hero;
+    // Nobody is driving and nothing is hostile: before the start button, and
+    // after Greg goes down.
+    const passive = idle || this.victory;
 
     // --- input ---
-    // Once Greg is beaten the player is no longer driving: the last second
-    // is Tim Tam's ragdoll and the fireworks settling, not more fighting.
-    const input = this.victory ? { left: false, right: false, jump: false } : {
+    const input = passive ? { left: false, right: false, jump: false } : {
       left: held('left'), right: held('right'),
       // Edge-triggered, so holding the key doesn't pin him to the ground.
       jump: justPressed('jump'),
     };
     // Held as well as tapped: with a flock on him, re-pressing for every
     // swing was the bottleneck.
-    if (!this.victory && (justPressed('slap') || held('slap'))) hero.startSwing();
-    if (!this.victory && justPressed('boom') && hero.canThrow()) {
+    if (!passive && (justPressed('slap') || held('slap'))) hero.startSwing();
+    if (!passive && justPressed('boom') && hero.canThrow()) {
       this.dynamites.push(hero.throwDynamite());
       FX.say(hero.x, hero.y - 90, pick(['DYNAMITE', 'catch!', 'bon appétit', 'for you']), {
         color: '#ffb3a0', size: 20, maxLife: 60,
@@ -190,14 +194,14 @@ class World {
 
     // --- geese ---
     R.updateSky(this.cam);
-    if (!this.victory) this.maybeSpawnGeese();
+    if (!passive) this.maybeSpawnGeese();
     for (let i = this.geese.length - 1; i >= 0; i--) {
       const g = this.geese[i];
       g.update(hero);
       if (g.deadT > 260) { this.geese.splice(i, 1); continue; }
 
       // Peck, wing buffet, or a full dive-bomb. Tim Tam notices these.
-      if (g.conscious && hero.conscious && !this.victory) {
+      if (g.conscious && hero.conscious && !passive) {
         for (const atk of g.attackHitboxes()) {
           const landed = hero.rag.list.some(
             (p) => Math.hypot(p.x - atk.x, p.y - atk.y) < atk.r + p.r);
@@ -231,7 +235,7 @@ class World {
     }
 
     // --- Greg ---
-    if (!this.greg && this.gooseKills >= GREG.spawnAfterGeese) this.introduceGreg();
+    if (!passive && !this.greg && this.gooseKills >= GREG.spawnAfterGeese) this.introduceGreg();
     if (this.greg) {
       this.greg.update(hero, this);
       const box = this.greg.bodyHitbox();
@@ -470,20 +474,14 @@ function loop(now) {
   if (dt > 200) dt = 200;      // tab was in the background; don't simulate a week
   acc += dt;
   let steps = 0;
+  const idle = state !== 'play';
   while (acc >= STEP && steps < 5) {
-    if (state === 'play') world.update();
-    else endFrameInput();
+    world.update(idle);
     acc -= STEP;
     steps++;
   }
-  if (state === 'play') {
-    world.draw();
-    world.syncHud();
-  } else {
-    // Title screen still simulates, so there's carnage behind the menu.
-    world.update();
-    world.draw();
-  }
+  world.draw();
+  if (!idle) world.syncHud();
   requestAnimationFrame(loop);
 }
 

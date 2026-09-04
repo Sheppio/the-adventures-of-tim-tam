@@ -211,7 +211,11 @@ export class Ragdoll {
     solveAll(this.sticks, 4, this.list);
 
     if (rooted) {
-      const a = 0.92 * this.drive;
+      // 0.92 left 8% of that sideways nudge alive each frame, and because the
+      // body is asymmetric (baguette arm out to one side) it always leaned the
+      // same way -- integrating into a steady ~3px/s moonwalk whenever he
+      // stood still. Cancel it outright when no movement is asked for.
+      const a = (this._wantVx === 0 ? 1 : 0.92) * this.drive;
       hips.x += (preX - hips.x) * a;
       hips.setVel(hips.vx + (this._wantVx - hips.vx) * 0.6 * this.drive, hips.vy);
       hips.collide();
