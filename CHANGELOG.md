@@ -6,6 +6,17 @@ Versions are `vMAJOR.MINOR.PATCH`. The version shown on the title screen is
 - **MINOR** — new mechanics, enemies, or anything that changes how it plays.
 - **PATCH** — bug fixes and tuning.
 
+## v0.7.1
+
+- **Mute is remembered between reloads**, in `localStorage`. Reads and writes
+  are wrapped — a browser set to block site data throws on access rather than
+  returning empty — and sound-on stays the default if storage is unavailable.
+  `initAudio` honours a restored mute, so the first sound after the audio
+  context wakes doesn't play at full volume.
+- Fixed the <kbd>M</kbd> key not updating the speaker icon: it toggled the
+  state but only the click handler redrew the button, so the two could
+  disagree. Both now go through one place.
+
 ## v0.7.0
 
 - **The canvas fills the window.** It used to render a fixed 1280×720 and

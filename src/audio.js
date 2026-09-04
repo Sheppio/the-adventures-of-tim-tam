@@ -4,7 +4,18 @@
 
 let ctx = null;
 let master = null;
-export let muted = false;
+
+const MUTE_KEY = 'timtam.muted';
+const VOLUME = 0.5;
+
+// Reading storage can throw outright, not just come back empty -- a browser
+// set to block site data, or a page opened from file://. Silence is a safe
+// default either way.
+function loadMuted() {
+  try { return localStorage.getItem(MUTE_KEY) === '1'; } catch { return false; }
+}
+
+export let muted = loadMuted();
 
 export function initAudio() {
   if (ctx) return;
@@ -12,7 +23,9 @@ export function initAudio() {
   if (!AC) return;
   ctx = new AC();
   master = ctx.createGain();
-  master.gain.value = 0.5;
+  // Honour a mute restored from a previous visit, or the first sound after
+  // the audio context wakes would play at full volume.
+  master.gain.value = muted ? 0 : VOLUME;
   master.connect(ctx.destination);
 }
 
@@ -21,8 +34,14 @@ export function resumeAudio() {
 }
 
 export function toggleMute() {
-  muted = !muted;
-  if (master) master.gain.value = muted ? 0 : 0.5;
+  setMuted(!muted);
+  return muted;
+}
+
+export function setMuted(next) {
+  muted = !!next;
+  if (master) master.gain.value = muted ? 0 : VOLUME;
+  try { localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch { /* not fatal */ }
   return muted;
 }
 

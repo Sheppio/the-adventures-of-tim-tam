@@ -573,14 +573,23 @@ addEventListener('keydown', (e) => {
     world.reset();
     FX.say(world.hero.x, GROUND_Y - 150, 'ROUND TWO', { color: '#ffe9a8', size: 30 });
   }
-  if (e.code === 'KeyM') A.toggleMute();
+  if (e.code === 'KeyM') { A.toggleMute(); syncMuteButton(); }
 });
 document.getElementById('start').addEventListener('click', startGame);
 document.getElementById('restart').addEventListener('click', () => world.reset());
-document.getElementById('mute').addEventListener('click', (e) => {
+function syncMuteButton() {
+  const el = document.getElementById('mute');
+  el.textContent = A.muted ? '🔇' : '🔊';
+  el.title = A.muted ? 'Unmute (M)' : 'Mute (M)';
+  el.setAttribute('aria-pressed', String(A.muted));
+}
+document.getElementById('mute').addEventListener('click', () => {
   A.initAudio();
-  e.currentTarget.textContent = A.toggleMute() ? '🔇' : '🔊';
+  A.toggleMute();
+  syncMuteButton();
 });
+// Restore whatever the last visit left it on.
+syncMuteButton();
 
 addEventListener('resize', fitCanvas);
 fitCanvas();
