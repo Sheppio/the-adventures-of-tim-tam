@@ -56,11 +56,20 @@
   }
   #countdown b { color: #fff3d0; font-size: 15px; }
   .cd-label { color: #c2a688; font-size: 11.5px; text-transform: uppercase; letter-spacing: .6px; }
-  #mute {
+  #mute, #fullscreen {
     background: #4a3320; color: var(--crumb); border: 2px solid #6b4a26;
     border-radius: 8px; font-size: 15px; padding: 3px 9px; cursor: pointer;
   }
-  #mute:hover { background: #5c4026; }
+  #mute:hover, #fullscreen:hover { background: #5c4026; }
+  /* Hidden where the Fullscreen API isn't available -- iPhone Safari only
+     allows it on <video>, so the button would be a dead control there. */
+  #fullscreen.unsupported { display: none; }
+  #fullscreen { line-height: 0; padding: 5px 8px; }
+  #fullscreen svg {
+    width: 15px; height: 15px; display: block;
+    fill: none; stroke: currentColor; stroke-width: 2.4;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
 
   /* ---- stage ---- */
   #stage {
@@ -214,7 +223,7 @@
   @media (max-height: 520px) {
     #topbar { padding: 3px 9px; }
     #topbar .brand { font-size: 12px; }
-    #mute { font-size: 12px; padding: 2px 7px; }
+    #mute, #fullscreen { font-size: 12px; padding: 2px 7px; }
     .chip { font-size: 10px; padding: 2px 8px; border-width: 1.5px; }
     .chip .k { font-size: 9px; margin-right: 3px; }
     #hud { gap: 4px; }
@@ -236,6 +245,7 @@
 <div id="topbar">
   <div class="brand">🥖 The Adventures of <span class="b">Tim&nbsp;Tam</span></div>
   <button id="mute" title="Mute (M)">🔊</button>
+  <button id="fullscreen" title="Fullscreen (F)" aria-label="Fullscreen"></button>
   <div id="countdown"></div>
 </div>
 
@@ -275,6 +285,7 @@
       <div><kbd>K</kbd> / right-click — dynamite</div>
       <div><kbd>R</kbd> restart the arena</div>
       <div><kbd>M</kbd> mute</div>
+      <div><kbd>F</kbd> fullscreen</div>
     </div>
     <p class="plea">
       <b>Why this exists:</b> every publisher on earth fled the GTA VI release

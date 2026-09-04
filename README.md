@@ -62,10 +62,11 @@ flattened**, not deaths. The victory screen reports his death count as
 | --- | --- | --- | --- |
 | Waddle | <kbd>A</kbd> / <kbd>D</kbd> or arrows | — | ◀ ▶ |
 | Hop | <kbd>W</kbd> / <kbd>Space</kbd> | — | ▲ |
-| Swing baguette | <kbd>J</kbd> | left click | 🥖 |
+| Swing baguette (hold) | <kbd>J</kbd> | left click | 🥖 |
 | Throw dynamite | <kbd>K</kbd> / <kbd>E</kbd> | right click | 🧨 |
 | Restart arena | <kbd>R</kbd> | — | — |
 | Mute | <kbd>M</kbd> | — | 🔊 button |
+| Fullscreen | <kbd>F</kbd> | — | ⛶ button |
 
 ## Running it locally
 

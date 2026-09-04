@@ -9,7 +9,7 @@ const MAP = {
   ArrowRight: 'right', KeyD: 'right',
   ArrowUp: 'jump', KeyW: 'jump', Space: 'jump',
   KeyJ: 'slap', KeyK: 'boom', KeyE: 'boom',
-  KeyR: 'restart', KeyM: 'mute', Enter: 'start', KeyH: 'help',
+  KeyR: 'restart', KeyM: 'mute', KeyF: 'fullscreen', Enter: 'start', KeyH: 'help',
 };
 
 export function initInput(canvas, onAnyKey) {

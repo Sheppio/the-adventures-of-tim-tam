@@ -84,7 +84,7 @@ export const GREG = {
 
 // Bump this on every push. Shown on the title screen so you always know
 // which build you're actually playing. See CHANGELOG.md.
-export const VERSION = 'v0.5.1';
+export const VERSION = 'v0.6.0';
 
 // The joke that started all this.
 // GTA VI: November 19, 2026. Every other publisher fled the date.

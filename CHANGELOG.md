@@ -6,6 +6,17 @@ Versions are `vMAJOR.MINOR.PATCH`. The version shown on the title screen is
 - **MINOR** — new mechanics, enemies, or anything that changes how it plays.
 - **PATCH** — bug fixes and tuning.
 
+## v0.6.0
+
+- **Fullscreen.** A ⛶ button next to mute, or <kbd>F</kbd>. Uses the Fullscreen
+  API with the `webkit` fallbacks Safari still needs, and hides itself entirely
+  where the API isn't available — iPhone Safari only allows fullscreen on
+  `<video>`, so the button would otherwise be a dead control. The canvas
+  refits on entering and leaving.
+- The icon is inline SVG rather than a glyph: the obvious fullscreen characters
+  (U+26F6 and friends) are missing from plenty of phone fonts and render as
+  tofu boxes.
+
 ## v0.5.1
 
 - **The fight no longer starts before you press the button.** The title screen

@@ -46,6 +46,7 @@ const ui = {
   gregWrap: document.getElementById('greg-bar'),
   gregFill: document.getElementById('greg-fill'),
   countdown: document.getElementById('countdown'),
+  fullscreen: document.getElementById('fullscreen'),
   victory: document.getElementById('victory'),
   vStats: document.getElementById('victory-stats'),
   touch: document.getElementById('touch'),
@@ -485,6 +486,50 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+// ------------------------------------------------------------- fullscreen
+
+// Safari still needs the webkit spellings, and iPhone Safari has no element
+// fullscreen at all -- only <video> -- so the button hides itself there
+// rather than sitting on the bar doing nothing.
+const fsEnabled = () =>
+  document.fullscreenEnabled || document.webkitFullscreenEnabled || false;
+const fsElement = () =>
+  document.fullscreenElement || document.webkitFullscreenElement || null;
+
+function toggleFullscreen() {
+  if (!fsEnabled()) return;
+  const root = document.documentElement;
+  if (fsElement()) {
+    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  } else {
+    const req = root.requestFullscreen || root.webkitRequestFullscreen;
+    // Rejects if the call didn't come from a user gesture; nothing to do but
+    // leave the page as it was.
+    if (req) Promise.resolve(req.call(root)).catch(() => {});
+  }
+}
+
+// Inline SVG rather than a glyph: the obvious fullscreen characters (U+26F6
+// and friends) are missing from plenty of phone fonts and render as tofu.
+const FS_ICON = {
+  enter: 'M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6',
+  exit: 'M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6',
+};
+function syncFullscreenButton() {
+  const on = !!fsElement();
+  ui.fullscreen.innerHTML =
+    `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${on ? FS_ICON.exit : FS_ICON.enter}"/></svg>`;
+  ui.fullscreen.title = on ? 'Exit fullscreen (F)' : 'Fullscreen (F)';
+  ui.fullscreen.setAttribute('aria-pressed', String(on));
+}
+
+if (!fsEnabled()) ui.fullscreen.classList.add('unsupported');
+ui.fullscreen.addEventListener('click', toggleFullscreen);
+for (const ev of ['fullscreenchange', 'webkitfullscreenchange']) {
+  document.addEventListener(ev, () => { syncFullscreenButton(); fitCanvas(); });
+}
+syncFullscreenButton();
+
 function tickCountdown() {
   const ms = GTA6_DATE.getTime() - Date.now();
   if (ms <= 0) {
@@ -515,6 +560,7 @@ window.__tt = {
 initInput(canvas, () => { A.initAudio(); A.resumeAudio(); });
 
 addEventListener('keydown', (e) => {
+  if (e.code === 'KeyF') toggleFullscreen();
   if (e.code === 'Enter' && state === 'title') startGame();
   if (e.code === 'KeyR' && state === 'play') {
     world.reset();
