@@ -6,6 +6,19 @@ Versions are `vMAJOR.MINOR.PATCH`. The version shown on the title screen is
 - **MINOR** — new mechanics, enemies, or anything that changes how it plays.
 - **PATCH** — bug fixes and tuning.
 
+## v0.5.0
+
+- **The arena freezes once Greg is beaten.** The victory panel used to appear
+  over a fight that carried on behind it — geese still attacking, Tim Tam still
+  taking input. Now the player's input is dropped and geese stop being a threat
+  the instant Greg goes down, physics runs on for ~2s so his collapse and the
+  firework cascade resolve, then the world hard-stops and the panel goes up
+  over the still frame. `GO AGAIN` clears the freeze.
+- **Rounded the ends of the baguette.** The tip was two curves meeting at a
+  single vertex, which read as a spear. Both ends are semicircular arc caps
+  now, with the crusts meeting them near-tangentially — capping the tip with a
+  quadratic instead left a visible kink at the heel.
+
 ## v0.4.0
 
 Environment pass.

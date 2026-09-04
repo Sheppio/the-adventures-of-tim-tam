@@ -673,10 +673,18 @@ export function drawBaguette(ctx, hero) {
   ctx.fillStyle = grd;
   ctx.strokeStyle = '#7a4f1c';
   ctx.lineWidth = 2.5;
+  // True semicircular caps at both ends. The tip was originally two curves
+  // meeting at a single vertex, which read as a spear; capping it with a
+  // quadratic instead left a kink where the curve met the crust, so both
+  // ends are arcs and the crusts meet them near-tangentially.
+  const hx = 5, tx = L - 8;        // cap centres
+  const rH = 7.2, rT = 7.6;        // cap radii
   ctx.beginPath();
-  ctx.moveTo(0, -7);
-  ctx.quadraticCurveTo(L * 0.5, -11, L, 0);
-  ctx.quadraticCurveTo(L * 0.5, 11, 0, 7);
+  ctx.moveTo(hx, -rH);
+  ctx.quadraticCurveTo(L * 0.5, -11, tx, -rT);          // top crust
+  ctx.arc(tx, 0, rT, -Math.PI / 2, Math.PI / 2);        // nose cap
+  ctx.quadraticCurveTo(L * 0.5, 11, hx, rH);            // bottom crust
+  ctx.arc(hx, 0, rH, Math.PI / 2, -Math.PI / 2);        // heel cap
   ctx.closePath();
   ctx.fill(); ctx.stroke();
 

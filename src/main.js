@@ -32,6 +32,10 @@ if (!ctx.roundRect) {
 document.getElementById('version').textContent = VERSION;
 document.title = `The Adventures of Tim Tam ${VERSION}`;
 
+// Frames between Greg going down and the arena freezing: long enough for his
+// collapse and the firework cascade (8 blasts, 220ms apart) to finish.
+const VICTORY_SETTLE = 130;
+
 const ui = {
   title: document.getElementById('title'),
   hud: document.getElementById('hud'),
@@ -63,6 +67,7 @@ class World {
     this.gregAnnounced = false;
     this.victory = false;
     this.victoryT = 0;
+    this.frozen = false;
     this.frame = 0;
     ui.victory.classList.add('hidden');
     ui.gregWrap.classList.add('hidden');
@@ -154,19 +159,25 @@ class World {
 
 
   update() {
+    // Greg is down and everything has settled: the arena holds still behind
+    // the victory panel instead of carrying on without the player.
+    if (this.frozen) { endFrameInput(); return; }
+
     this.frame++;
     const hero = this.hero;
 
     // --- input ---
-    const input = {
+    // Once Greg is beaten the player is no longer driving: the last second
+    // is Tim Tam's ragdoll and the fireworks settling, not more fighting.
+    const input = this.victory ? { left: false, right: false, jump: false } : {
       left: held('left'), right: held('right'),
       // Edge-triggered, so holding the key doesn't pin him to the ground.
       jump: justPressed('jump'),
     };
     // Held as well as tapped: with a flock on him, re-pressing for every
     // swing was the bottleneck.
-    if (justPressed('slap') || held('slap')) hero.startSwing();
-    if (justPressed('boom') && hero.canThrow()) {
+    if (!this.victory && (justPressed('slap') || held('slap'))) hero.startSwing();
+    if (!this.victory && justPressed('boom') && hero.canThrow()) {
       this.dynamites.push(hero.throwDynamite());
       FX.say(hero.x, hero.y - 90, pick(['DYNAMITE', 'catch!', 'bon appétit', 'for you']), {
         color: '#ffb3a0', size: 20, maxLife: 60,
@@ -186,7 +197,7 @@ class World {
       if (g.deadT > 260) { this.geese.splice(i, 1); continue; }
 
       // Peck, wing buffet, or a full dive-bomb. Tim Tam notices these.
-      if (g.conscious && hero.conscious) {
+      if (g.conscious && hero.conscious && !this.victory) {
         for (const atk of g.attackHitboxes()) {
           const landed = hero.rag.list.some(
             (p) => Math.hypot(p.x - atk.x, p.y - atk.y) < atk.r + p.r);
@@ -240,7 +251,7 @@ class World {
     this.updateProjectiles();
     FX.updateFx();
     this.updateCamera();
-    if (this.victory) this.victoryT++;
+    if (this.victory && ++this.victoryT >= VICTORY_SETTLE) this.freeze();
     endFrameInput();
   }
 
@@ -259,19 +270,25 @@ class World {
     this.victory = true;
     this.victoryT = 0;
     A.sfxFanfare();
+    for (let i = 0; i < 8; i++) {
+      setTimeout(() => {
+        if (!this.greg || this.frozen) return;
+        this.explode(this.greg.x + rand(-160, 160), GROUND_Y - rand(20, 200), 150, 26,
+          { gregDamage: 0 });
+      }, i * 220);
+    }
+  }
+
+  // Stop the world and put the panel up over the still frame.
+  freeze() {
+    if (this.frozen) return;
+    this.frozen = true;
     ui.vStats.innerHTML =
       `Geese launched: <b>${this.gooseKills}</b><br>` +
       `Baguette connections: <b>${this.hero.slaps}</b><br>` +
       `Times Tim Tam was flattened: <b>${this.hero.flops}</b><br>` +
       `Times Tim Tam died: <b>0</b> <span class="dim">(not implemented)</span>`;
     ui.victory.classList.remove('hidden');
-    for (let i = 0; i < 8; i++) {
-      setTimeout(() => {
-        if (!this.greg) return;
-        this.explode(this.greg.x + rand(-160, 160), GROUND_Y - rand(20, 200), 150, 26,
-          { gregDamage: 0 });
-      }, i * 220);
-    }
   }
 
   updateProjectiles() {
