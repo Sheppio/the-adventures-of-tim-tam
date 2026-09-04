@@ -43,6 +43,17 @@ const clouds = Array.from({ length: 14 }, (_, i) => ({
   d: 0.12 + ((i % 3) * 0.05),
 }));
 
+// Deterministic per-house, so a given shop always has the same name.
+// Keep these short: the narrowest shopfront gives ~62px, and the sign only
+// shrinks to 7px Georgia before it stops being readable.
+const SHOP_NAMES = [
+  'BOULANGERIE', 'PATISSERIE', 'FROMAGERIE', 'CHARCUTERIE', 'CREPERIE',
+  'CHOCOLATERIE', 'POISSONNERIE', 'BRASSERIE', 'EPICERIE', 'FLEURISTE',
+  'LIBRAIRIE', 'BOUCHERIE', 'CAFE DES OIES', 'LE PETIT PAIN',
+  'BAGUETTE D\'OR', 'AUX DEUX OIES', 'LE PAIN LOURD', 'CHEZ GREG',
+  'TABAC', 'PAIN & CO',
+];
+
 const houses = Array.from({ length: 26 }, (_, i) => {
   const r = (n) => ((Math.sin(i * 12.9898 + n * 78.233) * 43758.5453) % 1 + 1) % 1;
   return {
@@ -53,6 +64,20 @@ const houses = Array.from({ length: 26 }, (_, i) => {
     roof: [ '#5a5f6b', '#6d5350', '#4c5259' ][Math.floor(r(4) * 3)],
     shop: r(5) > 0.62,
     awning: r(6) > 0.5,
+    name: SHOP_NAMES[Math.floor(r(7) * SHOP_NAMES.length)],
+  };
+});
+
+// The far skyline: Paris rooftops behind the village, hazy and low-contrast
+// so it reads as distance rather than as more scenery.
+const skyline = Array.from({ length: 40 }, (_, i) => {
+  const r = (n) => ((Math.sin(i * 7.31 + n * 41.7) * 31877.1) % 1 + 1) % 1;
+  return {
+    x: i * 132 - 200,
+    w: 74 + r(1) * 76,
+    h: 120 + r(2) * 130,
+    cap: r(3) > 0.88 ? 'dome' : r(3) > 0.76 ? 'spire' : r(3) > 0.4 ? 'mansard' : 'flat',
+    chimneys: Math.floor(r(4) * 4),
   };
 });
 
@@ -103,11 +128,23 @@ export function drawBackground(ctx, cam) {
     ctx.fill();
   }
 
-  // Eiffel Tower, far parallax, because the bread had to come from somewhere.
+  // Eiffel Tower: furthest thing built, so it goes down first and the
+  // rooftops in front of it overlap its base. Its base sits on GROUND_Y, the
+  // same line the houses stand on -- it used to be 40px above it, which is
+  // why it floated.
   ctx.save();
   ctx.translate(cam * 0.84, 0);
-  drawTower(ctx, 640, GROUND_Y - 40, 0.85);
+  drawTower(ctx, 640, GROUND_Y, 1.5);
   ctx.restore();
+
+  // Far skyline, between the tower's parallax and the village's so the depth
+  // ramp is even.
+  ctx.save();
+  ctx.translate(cam * 0.74, 0);
+  drawSkyline(ctx);
+  ctx.restore();
+
+  drawFlyers(ctx, cam);
 
   // Village
   ctx.save();
@@ -133,9 +170,16 @@ export function drawBackground(ctx, cam) {
       ctx.fillStyle = '#3b2a1c';
       ctx.fillRect(h.x + 10, GROUND_Y - 92, h.w - 20, 62);
       ctx.fillStyle = '#f0d9a8';
-      ctx.font = '900 13px Georgia, serif';
       ctx.textAlign = 'center';
-      ctx.fillText('BOULANGERIE', h.x + h.w / 2, GROUND_Y - 100);
+      // Shrink to fit: the names vary a lot in length and the shopfronts don't.
+      const maxW = h.w - 26;
+      let size = 13;
+      ctx.font = `900 ${size}px Georgia, serif`;
+      while (size > 7 && ctx.measureText(h.name).width > maxW) {
+        size -= 0.5;
+        ctx.font = `900 ${size}px Georgia, serif`;
+      }
+      ctx.fillText(h.name, h.x + h.w / 2, GROUND_Y - 100);
       ctx.textAlign = 'left';
     }
     if (h.awning) {
@@ -175,26 +219,229 @@ export function drawBackground(ctx, cam) {
   ctx.restore();
 }
 
+// Distant Paris rooftops. Flat silhouettes in a haze tone -- no windows, no
+// detail, because anything legible here competes with the playfield.
+function drawSkyline(ctx) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(151,171,191,0.34)';
+  for (const b of skyline) {
+    const top = GROUND_Y - b.h;
+    ctx.fillRect(b.x, top, b.w, b.h);
+    const mid = b.x + b.w / 2;
+    if (b.cap === 'mansard') {
+      ctx.beginPath();
+      ctx.moveTo(b.x - 5, top);
+      ctx.lineTo(b.x + 12, top - 22);
+      ctx.lineTo(b.x + b.w - 12, top - 22);
+      ctx.lineTo(b.x + b.w + 5, top);
+      ctx.closePath(); ctx.fill();
+    } else if (b.cap === 'spire') {
+      ctx.beginPath();
+      ctx.moveTo(b.x + 6, top);
+      ctx.lineTo(mid, top - 74);
+      ctx.lineTo(b.x + b.w - 6, top);
+      ctx.closePath(); ctx.fill();
+    } else if (b.cap === 'dome') {
+      ctx.beginPath();
+      ctx.arc(mid, top, b.w * 0.44, Math.PI, TAU);
+      ctx.fill();
+      ctx.fillRect(mid - 2, top - b.w * 0.44 - 16, 4, 18);
+    }
+    // Chimney pots. The most Parisian detail available at four pixels wide.
+    for (let c = 0; c < b.chimneys; c++) {
+      const cx = b.x + 10 + ((c * 29) % Math.max(1, b.w - 22));
+      ctx.fillRect(cx, top - 13, 5, 13);
+    }
+  }
+  ctx.restore();
+}
+
+// -------------------------------------------------------------- sky traffic
+
+const BANNERS = [
+  'HONK', 'VIVE LE PAIN', 'GREG IS FINE', 'BAGUETTE POWER',
+  'SEE YOU NOV 19', 'GEESE GO HOME', 'BREAD IS LOVE', 'IL EST TEMPS',
+];
+
+// Birds and the occasional banner plane. Purely decorative: nothing up here
+// collides with anything, and none of it is part of the fight.
+const flyers = [];
+let flyerTimer = 90;
+
+export function updateSky(cam) {
+  for (let i = flyers.length - 1; i >= 0; i--) {
+    const f = flyers[i];
+    f.x += f.vx;
+    f.phase += f.kind === 'plane' ? 0.5 : 0.22;
+    // Despawn on viewport offset, which is where the parallax actually puts it.
+    const off = f.x - cam * (1 - f.d);
+    if (off < -620 || off > VW + 620) flyers.splice(i, 1);
+  }
+
+  if (--flyerTimer > 0 || flyers.length > 2) return;
+  flyerTimer = 420 + Math.floor(Math.random() * 620);
+  spawnFlyover(cam);
+}
+
+export function spawnFlyover(cam, kind) {
+  const plane = kind ? kind === 'plane' : Math.random() < 0.34;
+  const dir = Math.random() < 0.5 ? 1 : -1;
+  const d = plane ? 0.34 : 0.62;
+  const edge = dir > 0 ? -260 : VW + 260;
+  flyers.push({
+    kind: plane ? 'plane' : 'birds',
+    d,
+    x: cam * (1 - d) + edge,
+    // The plane flies under the bunting (CAM_Y+96) and over the rooftops:
+    // the bunting is a nearer layer, so it slices the banner if they overlap.
+    y: CAM_Y + (plane ? 152 + Math.random() * 78 : 52 + Math.random() * 150),
+    vx: dir * (plane ? 2.4 + Math.random() * 0.8 : 1.35 + Math.random() * 0.6),
+    dir,
+    phase: 0,
+    n: 4 + Math.floor(Math.random() * 5),
+    banner: BANNERS[Math.floor(Math.random() * BANNERS.length)],
+  });
+}
+
+function drawFlyers(ctx, cam) {
+  for (const f of flyers) {
+    ctx.save();
+    ctx.translate(cam * f.d, 0);
+    if (f.kind === 'plane') drawPlane(ctx, f);
+    else drawBirdFlock(ctx, f);
+    ctx.restore();
+  }
+}
+
+// A V of distant birds. Each one is two strokes; the illusion is the formation.
+function drawBirdFlock(ctx, f) {
+  ctx.strokeStyle = 'rgba(58,60,70,0.58)';
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < f.n; i++) {
+    // Leader at rank 0, then pairs peeling off alternating arms: a V, not a
+    // queue. Ranks trail behind the direction of travel.
+    const rank = Math.ceil(i / 2);
+    const arm = i % 2 ? 1 : -1;
+    const bx = f.x - f.dir * rank * 27;
+    const by = f.y + (rank === 0 ? 0 : arm * rank * 11);
+    // Wings beat out of phase down the formation so it doesn't pulse as one.
+    const w = Math.sin(f.phase + i * 0.8) * 4.5;
+    ctx.beginPath();
+    ctx.moveTo(bx - 9, by + w);
+    ctx.quadraticCurveTo(bx - 3.5, by - 3.5, bx, by);
+    ctx.quadraticCurveTo(bx + 3.5, by - 3.5, bx + 9, by + w);
+    ctx.stroke();
+  }
+}
+
+function drawPlane(ctx, f) {
+  const d = f.dir;
+  ctx.save();
+  ctx.translate(f.x, f.y);
+  ctx.scale(d, 1);
+
+  // Banner first, so the plane overlaps its leading edge.
+  const bw = 168, bh = 30, gap = 34;
+  ctx.fillStyle = 'rgba(70,60,55,0.5)';
+  ctx.fillRect(-gap, -1.5, gap, 2);
+  ctx.fillStyle = 'rgba(214,74,64,0.88)';
+  ctx.fillRect(-gap - bw, -bh / 2, bw, bh);
+  ctx.save();
+  ctx.scale(d, 1);                       // un-mirror, or the text reads backwards
+  ctx.fillStyle = '#fff4e0';
+  ctx.font = '900 15px Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(f.banner, d * (-gap - bw / 2), 1);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+
+  ctx.strokeStyle = 'rgba(45,38,32,0.75)';
+  ctx.lineWidth = 2;
+
+  ctx.fillStyle = '#c9412f';
+  ctx.beginPath();                       // tail fin, first so the body caps it
+  ctx.moveTo(-20, -2); ctx.lineTo(-31, -21); ctx.lineTo(-11, -3);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath();                       // tailplane
+  ctx.ellipse(-24, 1, 9, 3, 0, 0, TAU);
+  ctx.fill(); ctx.stroke();
+
+  // Fuselage: a wedge with a pointed nose. A plain ellipse read as a fish.
+  ctx.fillStyle = '#e8e2d4';
+  ctx.beginPath();
+  ctx.moveTo(30, 0);
+  ctx.quadraticCurveTo(22, -9, 4, -9);
+  ctx.lineTo(-24, -4);
+  ctx.quadraticCurveTo(-30, -1, -24, 3);
+  ctx.lineTo(6, 8);
+  ctx.quadraticCurveTo(23, 7, 30, 0);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle = 'rgba(120,180,215,0.95)';
+  ctx.beginPath();                       // cockpit glass
+  ctx.ellipse(10, -6, 7.5, 4.5, 0, Math.PI, TAU);
+  ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle = '#cfc7b6';
+  ctx.beginPath();                       // wing, swept back under the body
+  ctx.moveTo(8, 3); ctx.lineTo(-6, 16); ctx.lineTo(-16, 15); ctx.lineTo(-4, 3);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // Prop: a thin blurred arc, not a full disc -- a ring at the nose read as
+  // a second body.
+  ctx.strokeStyle = 'rgba(60,55,50,0.4)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(31, 0, 2, 12 + Math.sin(f.phase * 3) * 1.5, 0, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawTower(ctx, x, baseY, s) {
   ctx.save();
   ctx.translate(x, baseY);
   ctx.scale(s, s);
-  ctx.strokeStyle = 'rgba(90,80,70,0.42)';
-  ctx.fillStyle = 'rgba(120,105,90,0.35)';
-  ctx.lineWidth = 4;
+  ctx.strokeStyle = 'rgba(112,104,96,0.4)';
+  ctx.fillStyle = 'rgba(132,122,110,0.3)';
+  ctx.lineWidth = 3.5;
   const H = 330;
+  // Silhouette: the classic flare, splayed feet to a needle.
+  const leg = (t) => 70 - 59 * Math.pow(t, 0.55);   // half-width at height t
   ctx.beginPath();
-  ctx.moveTo(-58, 0); ctx.lineTo(-11, -H * 0.72); ctx.lineTo(-5, -H);
-  ctx.lineTo(5, -H); ctx.lineTo(11, -H * 0.72); ctx.lineTo(58, 0);
+  ctx.moveTo(-70, 0);
+  for (let t = 0; t <= 0.72; t += 0.06) ctx.lineTo(-leg(t / 0.72) , -H * t);
+  ctx.lineTo(-5, -H); ctx.lineTo(5, -H);
+  for (let t = 0.72; t >= 0; t -= 0.06) ctx.lineTo(leg(t / 0.72), -H * t);
   ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // Lattice. Cheap X-bracing, but it's what makes it read as the tower
+  // rather than as a pylon.
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.lineWidth = 1.6;
+  for (let t = 0.02; t < 0.7; t += 0.055) {
+    const w0 = leg(t / 0.72), w1 = leg((t + 0.055) / 0.72);
+    const y0 = -H * t, y1 = -H * (t + 0.055);
+    ctx.beginPath();
+    ctx.moveTo(-w0, y0); ctx.lineTo(w1, y1);
+    ctx.moveTo(w0, y0); ctx.lineTo(-w1, y1);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Observation decks
   ctx.beginPath();
-  ctx.moveTo(-44, -H * 0.24); ctx.lineTo(44, -H * 0.24);
-  ctx.moveTo(-20, -H * 0.52); ctx.lineTo(20, -H * 0.52);
+  ctx.moveTo(-46, -H * 0.24); ctx.lineTo(46, -H * 0.24);
+  ctx.moveTo(-21, -H * 0.52); ctx.lineTo(21, -H * 0.52);
+  ctx.moveTo(-11, -H * 0.72); ctx.lineTo(11, -H * 0.72);
   ctx.stroke();
   // Arch
   ctx.beginPath();
-  ctx.moveTo(-40, 0);
-  ctx.quadraticCurveTo(0, -H * 0.2, 40, 0);
+  ctx.moveTo(-52, 0);
+  ctx.quadraticCurveTo(0, -H * 0.22, 52, 0);
   ctx.stroke();
   ctx.restore();
 }

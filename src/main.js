@@ -178,6 +178,7 @@ class World {
     // --- the universe's unprompted contributions ---
 
     // --- geese ---
+    R.updateSky(this.cam);
     if (!this.victory) this.maybeSpawnGeese();
     for (let i = this.geese.length - 1; i >= 0; i--) {
       const g = this.geese[i];
@@ -492,6 +493,7 @@ window.__tt = {
   spawnGreg: () => world.introduceGreg(),
   boom: (x, y) => world.explode(x ?? world.hero.x, y ?? GROUND_Y - 40, 260, 60),
   version: VERSION,
+  flyover: (kind) => R.spawnFlyover(world.cam, kind),
   addGoose: (x, y) => world.geese.push(new Goose(x ?? world.hero.x + 160, y ?? GROUND_Y - 40)),
 };
 

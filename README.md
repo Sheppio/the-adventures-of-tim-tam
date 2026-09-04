@@ -39,6 +39,13 @@ One arena. Side-scrolling. No levels, no lore, no menus to speak of.
 - **Greg** — the final boss. Just some dude named Greg. Polo shirt, khakis,
   lanyard. He throws staplers and calls meetings.
 
+### The arena
+
+A single side-scrolling French village, drawn in five parallax layers: clouds,
+the Eiffel Tower, a hazy rooftop skyline, the shopfronts you fight in front of,
+and bunting strung across the foreground. Twenty different shop names, the odd
+V of birds overhead, and now and then a plane towing a banner.
+
 ### Tim Tam cannot die
 
 There is no health bar. There is no death animation, because nobody wrote one.

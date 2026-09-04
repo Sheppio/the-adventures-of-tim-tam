@@ -6,6 +6,30 @@ Versions are `vMAJOR.MINOR.PATCH`. The version shown on the title screen is
 - **MINOR** — new mechanics, enemies, or anything that changes how it plays.
 - **PATCH** — bug fixes and tuning.
 
+## v0.4.0
+
+Environment pass.
+
+- **The Eiffel Tower no longer floats.** Its base was drawn at `GROUND_Y - 40`,
+  40px above the line the houses stand on. It also drew *in front* of the
+  skyline despite sitting further back, so the depth order is fixed too: it
+  goes down first and the rooftops overlap its base. Scaled up so it clears the
+  roofline, given X-brace latticing so it reads as the tower rather than a
+  pylon, and hazed back so it doesn't out-contrast nearer layers.
+- **New parallax layer** at depth 0.74, between the tower (0.84) and the
+  village (0.58): a hazy Paris skyline of mansards, domes, spires and chimney
+  pots. Flat silhouettes only — anything legible back there competes with the
+  playfield.
+- **Twenty French shop names** instead of every shop being BOULANGERIE, picked
+  deterministically per building so a given shop keeps its name. Signs shrink
+  to fit their shopfront; the name list is length-checked against the narrowest
+  one.
+- **Sky traffic.** Occasional V-formations of distant birds, and a banner plane
+  towing things like SEE YOU NOV 19 and GREG IS FINE. Purely decorative —
+  nothing up there collides with anything. The plane flies under the bunting
+  and over the rooftops, since the bunting is a nearer layer and would
+  otherwise slice the banner.
+
 ## v0.3.1
 
 - Trimmed the closing lines from the title screen's "Why this exists" note.
