@@ -206,18 +206,37 @@
     display: none; justify-content: space-between; align-items: flex-end;
     padding: 12px 16px 18px; pointer-events: none;
   }
-  #touch .side { display: flex; gap: 12px; pointer-events: auto; }
-  /* Jump sits centred above left/right so the whole movement cluster is one
-     thumb's reach on the left. */
-  #touch .move { flex-direction: column; align-items: center; }
-  #touch .move .row { display: flex; gap: 12px; }
+  #touch { --btn: 76px; --diag: 64px; --gap: 11px; }
+  #touch .side { display: flex; gap: var(--gap); pointer-events: auto; }
+  /* Movement is one three-column cluster under the left thumb: the diagonals
+     sit above left/right, on the jump's row, so jumping while moving is one
+     press instead of two. */
+  #touch .move {
+    display: grid;
+    grid-template-columns: repeat(3, var(--btn));
+    gap: var(--gap);
+    justify-items: center; align-items: center;
+  }
+  #touch .move [data-btn="right"] { grid-column: 3; }
   #touch button {
-    width: 76px; height: 76px; border-radius: 50%;
+    width: var(--btn); height: var(--btn); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;                      /* default button padding skews the % sizing */
     background: rgba(247,239,221,.22); color: var(--paper);
     border: 2px solid rgba(247,239,221,.5);
     font-size: 27px; font-weight: 900;
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
+  }
+  /* Explicit SVG arrowheads. ↖/↗ are missing from some phone fonts, and a
+     rotated ▲ came out pointing the wrong way -- the glyph does not sit
+     centred in its line box, so it swings rather than spins. */
+  #touch .diag { width: var(--diag); height: var(--diag); }
+  /* flex: none, or the flex centring shrinks a percentage-sized child and
+     the arrow ends up small and off-square. */
+  #touch .diag svg {
+    width: 52%; height: 52%; flex: none;
+    fill: currentColor; display: block;
   }
   #touch button:active { background: rgba(247,239,221,.45); }
   @media (hover: none) and (pointer: coarse) {
@@ -233,9 +252,17 @@
     #hud { gap: 4px; }
     #greg-bar { padding: 3px 5px; }
     #greg-track { height: 9px; }
-    #touch button { width: 62px; height: 62px; font-size: 22px; }
-    #touch .side, #touch .move .row { gap: 9px; }
-    #touch { padding: 8px 12px 10px; }
+    #touch { --btn: 62px; --diag: 52px; --gap: 9px; padding: 8px 12px 10px; }
+    #touch button { font-size: 22px; }
+  }
+  /* Five buttons across the bottom need more width than three did. */
+  @media (max-width: 560px) {
+    #touch { --btn: 62px; --diag: 52px; --gap: 8px; padding: 8px 10px 12px; }
+    #touch button { font-size: 22px; }
+  }
+  @media (max-width: 380px) {
+    #touch { --btn: 54px; --diag: 45px; --gap: 6px; padding: 6px 8px 10px; }
+    #touch button { font-size: 19px; }
   }
   @media (max-width: 620px) {
     #topbar { font-size: 11px; gap: 8px; padding: 6px 9px; }
@@ -312,11 +339,11 @@
 
   <div id="touch" class="hidden">
     <div class="side move">
+      <button data-btn="left jump" aria-label="jump left" class="diag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4 L17.5 7 L7 17.5 Z"/></svg></button>
       <button data-btn="jump" aria-label="jump">▲</button>
-      <div class="row">
-        <button data-btn="left" aria-label="left">◀</button>
-        <button data-btn="right" aria-label="right">▶</button>
-      </div>
+      <button data-btn="right jump" aria-label="jump right" class="diag"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4 L17 17.5 L6.5 7 Z"/></svg></button>
+      <button data-btn="left" aria-label="left">◀</button>
+      <button data-btn="right" aria-label="right">▶</button>
     </div>
     <div class="side">
       <button data-btn="slap" aria-label="baguette">🥖</button>

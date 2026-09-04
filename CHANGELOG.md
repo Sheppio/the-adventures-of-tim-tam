@@ -6,6 +6,18 @@ Versions are `vMAJOR.MINOR.PATCH`. The version shown on the title screen is
 - **MINOR** — new mechanics, enemies, or anything that changes how it plays.
 - **PATCH** — bug fixes and tuning.
 
+## v0.8.0
+
+- **Diagonal jump buttons for touch.** Jumping while moving needed two thumbs
+  on two buttons; there are now dedicated jump-left and jump-right buttons,
+  slightly smaller, sitting above ◀ and ▶ on the jump's row. Keyboard is
+  unchanged.
+- `data-btn` accepts several actions, so one button can be "left jump", and
+  held actions are reference-counted — releasing the diagonal no longer
+  cancels a ◀ still held under another thumb.
+- Button sizing moved to CSS variables with breakpoints at 560px and 380px
+  wide, since five buttons across the bottom need more room than three did.
+
 ## v0.7.1
 
 - **Mute is remembered between reloads**, in `localStorage`. Reads and writes
